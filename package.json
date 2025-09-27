@@ -17,7 +17,30 @@
         "command": "azure-devops-pr.helloWorld",
         "title": "Hello World"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "azureDevOpsPr",
+          "title": "Azure DevOps PR",
+          "icon": "src/resources/azureDevOpsPr.svg"
+        }
+      ]
+    },
+    "views": {
+      "azureDevOpsPr": [
+        {
+          "id": "pullRequests",
+          "name": "Pull Requests",
+          "icon": ""
+        },
+        {
+          "id": "pipelineRuns",
+          "name": "Pipeline Runs",
+          "icon": ""
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
