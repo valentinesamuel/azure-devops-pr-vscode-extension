@@ -12,22 +12,26 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "viewsWelcome": [
-      {
-        "view": "pullRequests",
-        "contents": "Please login to Azure DevOps\n[Login](command:azureDevOpsPr.helloWorld)"
-      },
-      {
-        "view": "pipelineRuns",
-        "contents": "Please login to Azure DevOps\n[Login](command:azureDevOpsPr.helloWorld)"
-      }
-    ],
     "commands": [
       {
         "command": "azureDevOpsPr.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "azureDevOpsPr.refreshPullRequests",
+        "title": "Refresh",
+        "icon": "$(refresh)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "azureDevOpsPr.refreshPullRequests",
+          "when": "view == pullRequests",
+          "group": "navigation"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {

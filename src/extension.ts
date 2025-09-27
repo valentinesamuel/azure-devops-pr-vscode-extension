@@ -1,6 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { PullRequestProvider, PullRequest } from './pullRequestProvider';
+import { PrDetailsWebviewProvider } from './prDetailsWebview';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -8,6 +10,26 @@ export function activate(context: vscode.ExtensionContext) {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "azure-devops-pr" is now active!');
+
+  // Create and register the pull request tree data provider
+  const pullRequestProvider = new PullRequestProvider();
+  vscode.window.registerTreeDataProvider('pullRequests', pullRequestProvider);
+
+  // Register refresh command for pull requests
+  const refreshCommand = vscode.commands.registerCommand(
+    'azureDevOpsPr.refreshPullRequests',
+    () => {
+      pullRequestProvider.refresh();
+    },
+  );
+
+  // Register command to open PR details
+  const openPrDetailsCommand = vscode.commands.registerCommand(
+    'azureDevOpsPr.openPrDetails',
+    (pullRequest: PullRequest) => {
+      PrDetailsWebviewProvider.createOrShow(context.extensionUri, pullRequest);
+    },
+  );
 
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
@@ -33,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
   });
 
-  context.subscriptions.push(disposable);
+  context.subscriptions.push(disposable, refreshCommand, openPrDetailsCommand);
 }
 
 function getWebViewContent() {
