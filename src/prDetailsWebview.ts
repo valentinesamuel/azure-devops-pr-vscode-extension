@@ -34,6 +34,14 @@ export class PrDetailsWebviewProvider {
             vscode.window.showInformationMessage(`Checking out branch: ${message.branch}`);
             // In a real implementation, you would use git commands here
             break;
+          case 'skipCheck':
+            vscode.window.showInformationMessage(`Skipped check: ${message.checkName}`);
+            // In a real implementation, you would skip the check in Azure DevOps
+            break;
+          case 'retryCheck':
+            vscode.window.showInformationMessage(`Retrying check: ${message.checkName}`);
+            // In a real implementation, you would retry the check in Azure DevOps
+            break;
         }
       },
       undefined,
@@ -127,9 +135,9 @@ export class PrDetailsWebviewProvider {
         }
     </style>
 </head>
-<body class="bg-azure-dark text-azure-text font-sans">
+<body class="bg-azure-dark text-azure-text font-sans h-screen overflow-hidden">
     <!-- Main Content -->
-    <div class="min-h-screen bg-azure-dark p-6">
+    <div class="h-full bg-azure-dark p-6 flex flex-col">
         <!-- PR Header - Full Width -->
         <div class="bg-azure-darker rounded-lg border border-azure-border content-card mb-6">
             <div class="p-8">
@@ -188,32 +196,33 @@ export class PrDetailsWebviewProvider {
             </div>
         </div>
 
-        <!-- Content Area - Two Columns -->
-        <div class="flex gap-6">
-            <!-- Left Column - Main Content -->
-            <div class="flex-1 bg-azure-darker rounded-lg border border-azure-border content-card">
-                <!-- Tabs -->
-                <div class="border-b border-azure-border">
-                    <div class="flex px-8">
-                        <button class="relative px-6 py-4 text-sm font-medium text-azure-blue nav-indicator">Overview</button>
-                        <button class="px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Files</button>
-                        <button class="px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Updates</button>
-                        <button class="px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Commits</button>
-                        <button class="px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Conflicts</button>
-                    </div>
+        <!-- Tabs Section - Full Width -->
+        <div class="bg-azure-darker rounded-lg border border-azure-border content-card mb-6 flex-shrink-0">
+            <div class="border-b border-azure-border">
+                <div class="flex px-8">
+                    <button id="overviewTab" class="tab-button relative px-6 py-4 text-sm font-medium text-azure-blue nav-indicator">Overview</button>
+                    <button id="filesTab" class="tab-button px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Files</button>
+                    <button id="updatesTab" class="tab-button px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Updates</button>
+                    <button id="commitsTab" class="tab-button px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Commits</button>
+                    <button id="conflictsTab" class="tab-button px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Conflicts</button>
                 </div>
+            </div>
+        </div>
 
-            <!-- Content Area -->
-            <div class="p-8">
-                <!-- Completion Status -->
+        <!-- Content Area - Dynamic Layout Based on Tab -->
+        <div class="flex-1 overflow-hidden">
+            <!-- Overview Tab Content - Two Columns -->
+            <div id="overviewContent" class="tab-content flex gap-6 h-full">
+                <!-- Left Column - Overview Content -->
+                <div class="flex-1 bg-azure-darker rounded-lg border border-azure-border content-card overflow-y-auto p-8">
+                <!-- Abandonment Status -->
                 <div class="mb-8">
-                    <div class="flex items-center text-sm text-azure-text-dim mb-6">
-                        <div class="timeline-dot"></div>
-                        <span>Valentine Samuel completed this pull request Friday</span>
-                        <div class="ml-auto flex space-x-4">
-                            <button class="text-azure-blue hover:underline">Cherry-pick</button>
-                            <button class="text-azure-blue hover:underline">Revert</button>
-                        </div>
+                    <div class="flex items-center bg-red-900/20 border border-red-600/30 rounded-lg p-4 mb-6">
+                        <svg class="w-5 h-5 text-red-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h8v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-red-200">The pull request was abandoned 19 Aug</span>
                     </div>
 
                     <!-- Merge Info -->
@@ -231,52 +240,59 @@ export class PrDetailsWebviewProvider {
                         <button class="text-azure-blue text-sm hover:underline">Show details</button>
                     </div>
 
-                    <!-- Checklist -->
+                    <!-- Checks Section -->
                     <div class="space-y-4 mb-8">
-                        <div class="flex items-center space-x-3">
-                            <div class="check-circle">
-                                <svg class="icon-check" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
+                        <!-- Required check succeeded -->
+                        <div class="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center text-white">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-medium text-white">Required check succeeded</span>
                             </div>
-                            <span class="text-sm">Required check succeeded</span>
-                        </div>
-                        <div class="text-xs text-red-400 ml-7 mb-2">
-                            <svg class="inline w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                            </svg>
-                            1 optional check failed
+                            <div class="flex items-center space-x-2 mt-2 ml-8">
+                                <svg class="w-4 h-4 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                                <span class="text-xs text-orange-300">1 optional check not yet run</span>
+                            </div>
                         </div>
 
-                        <div class="flex items-center space-x-3">
-                            <div class="check-circle">
-                                <svg class="icon-check" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
+                        <!-- Comments must be resolved -->
+                        <div class="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center text-white">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-medium text-white">Comments must be resolved</span>
                             </div>
-                            <span class="text-sm">Comments must be resolved</span>
                         </div>
 
-                        <div class="text-azure-blue text-sm ml-7 cursor-pointer hover:underline mb-3">View 2 checks</div>
-
-                        <div class="flex items-center space-x-3">
-                            <div class="check-circle">
-                                <svg class="icon-check" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        <!-- View checks link -->
+                        <div class="ml-8">
+                            <button id="toggleChecksPanel" class="text-azure-blue text-sm hover:underline flex items-center space-x-1">
+                                <span>View 2 checks</span>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
                                 </svg>
-                            </div>
-                            <span class="text-sm">Required reviewers have approved</span>
+                            </button>
                         </div>
 
-                        <div class="flex items-center space-x-3">
-                            <div class="check-circle">
-                                <svg class="icon-check" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
+                        <!-- Waiting for reviewers -->
+                        <div class="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center text-white">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-medium text-white">2 required reviewers must approve</span>
                             </div>
-                            <span class="text-sm">No merge conflicts</span>
                         </div>
-                        <div class="text-xs text-azure-text-dim ml-7">Last checked Friday</div>
                     </div>
                 </div>
 
@@ -458,102 +474,459 @@ export class PrDetailsWebviewProvider {
                         </div>
                     </div>
                 </div>
+                </div>
+
+                <!-- Right Column - Sidebar (Only for Overview) -->
+                <div class="w-80 bg-azure-darker rounded-lg border border-azure-border sidebar-card flex flex-col overflow-hidden">
+                    <div class="p-6 overflow-y-auto flex-1">
+                        <!-- Reviewers -->
+                        <div class="mb-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-medium text-white">Reviewers</h3>
+                                <button class="text-azure-blue text-sm hover:underline">Add</button>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div class="text-xs text-azure-text-dim font-medium uppercase tracking-wide">Required</div>
+
+                                <div class="flex items-center space-x-3 p-3 rounded-lg border border-azure-border bg-azure-dark/30">
+                                    <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs">
+                                        <svg class="icon-user" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-sm text-white">Kuja Leads</div>
+                                        <div class="text-xs text-azure-green">Approved via Valentine Samuel</div>
+                                    </div>
+                                    <div class="w-4 h-4 bg-azure-green rounded-full flex items-center justify-center text-white">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <div class="text-xs text-azure-text-dim font-medium uppercase tracking-wide mt-6">Optional</div>
+
+                                <div class="flex items-center space-x-3 p-3 rounded-lg border border-azure-border bg-azure-dark/30">
+                                    <div class="w-6 h-6 bg-azure-green rounded-full flex items-center justify-center text-white text-xs">
+                                        <svg class="icon-user" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-sm text-white">Valentine Samuel</div>
+                                        <div class="text-xs text-azure-green">Approved</div>
+                                    </div>
+                                    <div class="w-4 h-4 bg-azure-green rounded-full flex items-center justify-center text-white">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tags -->
+                        <div class="mb-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-medium text-white">Tags</h3>
+                                <button class="text-azure-text-dim hover:text-white text-lg">+</button>
+                            </div>
+                            <div class="p-4 rounded-lg border border-azure-border bg-azure-dark/30">
+                                <div class="text-sm text-azure-text-dim">No tags</div>
+                            </div>
+                        </div>
+
+                        <!-- Work Items -->
+                        <div class="mb-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-medium text-white">Work Items</h3>
+                                <button class="text-azure-text-dim hover:text-white text-lg">+</button>
+                            </div>
+                            <div class="p-4 rounded-lg border border-azure-border bg-azure-dark/30">
+                                <div class="text-sm text-azure-text-dim">No work items</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Files Tab Content - Full Width -->
+            <div id="filesContent" class="tab-content bg-azure-darker rounded-lg border border-azure-border content-card p-8 hidden">
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-white">Files changed</h3>
+                        <div class="flex items-center space-x-4">
+                            <button class="text-azure-blue text-sm hover:underline">View merge commit</button>
+                            <div class="flex items-center space-x-2">
+                                <button class="bg-azure-blue text-white px-3 py-1 rounded text-sm">Filter</button>
+                                <span class="text-azure-text-dim text-sm">58 changed files</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File Conflict Alert -->
+                    <div class="bg-orange-900/20 border border-orange-600/30 rounded-lg p-4 mb-6">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-orange-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-orange-200">There are some conflict resolutions applied that aren't visible in the Files tab. Review merge commit to see all the changes including conflict resolutions.</span>
+                            <button class="ml-auto text-orange-200 hover:text-white">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <button class="bg-azure-blue text-white px-3 py-1 rounded text-sm">All Changes</button>
+                            <button class="text-azure-text-dim text-sm hover:text-white">Filter</button>
+                            <span class="text-azure-text-dim text-sm">58 changed files</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="text-azure-text-dim hover:text-white p-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V4z"/>
+                                </svg>
+                            </button>
+                            <button class="text-azure-text-dim hover:text-white p-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 6.707 6.293a1 1 0 00-1.414 1.414L8.586 11H5v-1a1 1 0 10-2 0v4a1 1 0 001 1h2.414l-1.707 1.707a1 1 0 101.414 1.414L9 14.414l2.879 2.879a1 1 0 001.414-1.414L11.586 14H15a1 1 0 001-1v-4a1 1 0 10-2 0v1h-3.586l3.293-3.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- File Tree -->
+                    <div class="space-y-2">
+                        <!-- Folder: src -->
+                        <div class="border border-azure-border rounded-lg">
+                            <div class="flex items-center p-3 bg-azure-dark/30">
+                                <button class="mr-2 text-azure-text-dim hover:text-white">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </button>
+                                <span class="font-medium text-white mr-2">src</span>
+                                <span class="text-xs text-azure-text-dim bg-azure-darker px-2 py-1 rounded">+42 -15</span>
+                            </div>
+
+                            <!-- Files in src folder -->
+                            <div class="border-t border-azure-border">
+                                <div class="flex items-center justify-between p-3 hover:bg-azure-dark/50 cursor-pointer">
+                                    <div class="flex items-center">
+                                        <span class="mr-3 text-azure-text-dim">├─</span>
+                                        <div class="flex items-center space-x-2">
+                                            <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V4z"/>
+                                            </svg>
+                                            <span class="text-white">account-ms-cl.yml</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-4">
+                                        <span class="text-xs text-azure-text-dim">+7 -3</span>
+                                        <button class="text-azure-blue text-sm hover:underline">View</button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-3 hover:bg-azure-dark/50 cursor-pointer border-t border-azure-border/50">
+                                    <div class="flex items-center">
+                                        <span class="mr-3 text-azure-text-dim">├─</span>
+                                        <div class="flex items-center space-x-2">
+                                            <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"/>
+                                            </svg>
+                                            <span class="text-white">azuredevopsuserpipelines</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-4">
+                                        <span class="text-xs text-azure-text-dim">+15 -8</span>
+                                        <button class="text-azure-blue text-sm hover:underline">View</button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-3 hover:bg-azure-dark/50 cursor-pointer border-t border-azure-border/50">
+                                    <div class="flex items-center">
+                                        <span class="mr-3 text-azure-text-dim">└─</span>
+                                        <div class="flex items-center space-x-2">
+                                            <svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span class="text-white">azuredbstorage.provider.ts</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-4">
+                                        <span class="text-xs text-azure-text-dim">+20 -4</span>
+                                        <button class="text-azure-blue text-sm hover:underline">View</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other files -->
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between p-3 hover:bg-azure-dark/30 rounded cursor-pointer">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V4z"/>
+                                    </svg>
+                                    <span class="text-white">redis.provider.ts</span>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-xs text-azure-text-dim">+5 -2</span>
+                                    <button class="text-azure-blue text-sm hover:underline">View</button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-3 hover:bg-azure-dark/30 rounded cursor-pointer">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"/>
+                                    </svg>
+                                    <span class="text-white">cache.adapter.ts</span>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-xs text-azure-text-dim">+3 -1</span>
+                                    <button class="text-azure-blue text-sm hover:underline">View</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="updatesContent" class="tab-content bg-azure-darker rounded-lg border border-azure-border content-card p-8 hidden">
+                <h3 class="text-lg font-medium text-white mb-4">Updates</h3>
+                <p class="text-azure-text-dim">Updates content would go here...</p>
+            </div>
+
+            <div id="commitsContent" class="tab-content bg-azure-darker rounded-lg border border-azure-border content-card p-8 hidden">
+                <h3 class="text-lg font-medium text-white mb-4">Commits</h3>
+                <p class="text-azure-text-dim">Commits content would go here...</p>
+            </div>
+
+            <div id="conflictsContent" class="tab-content bg-azure-darker rounded-lg border border-azure-border content-card p-8 hidden">
+                <h3 class="text-lg font-medium text-white mb-4">Conflicts</h3>
+                <p class="text-azure-text-dim">Conflicts content would go here...</p>
             </div>
         </div>
+    </div>
 
-        <!-- Right Column - Sidebar -->
-        <div class="w-80 bg-azure-darker rounded-lg border border-azure-border sidebar-card p-6">
-            <!-- Reviewers -->
-            <div class="mb-8">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-medium text-white">Reviewers</h3>
-                    <button class="text-azure-blue text-sm hover:underline">Add</button>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="text-xs text-azure-text-dim font-medium uppercase tracking-wide">Required</div>
-
-                    <div class="flex items-center space-x-3 p-3 rounded-lg border border-azure-border bg-azure-dark/30">
-                        <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs">
-                            <svg class="icon-user" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-sm text-white">Kuja Leads</div>
-                            <div class="text-xs text-azure-green">Approved via Valentine Samuel</div>
-                        </div>
-                        <div class="w-4 h-4 bg-azure-green rounded-full flex items-center justify-center text-white">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="text-xs text-azure-text-dim font-medium uppercase tracking-wide mt-6">Optional</div>
-
-                    <div class="flex items-center space-x-3 p-3 rounded-lg border border-azure-border bg-azure-dark/30">
-                        <div class="w-6 h-6 bg-azure-green rounded-full flex items-center justify-center text-white text-xs">
-                            <svg class="icon-user" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-sm text-white">Valentine Samuel</div>
-                            <div class="text-xs text-azure-green">Approved</div>
-                        </div>
-                        <div class="w-4 h-4 bg-azure-green rounded-full flex items-center justify-center text-white">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
+    <!-- Checks Panel (Hidden by default) -->
+    <div id="checksPanel" class="fixed top-0 right-0 h-full w-96 bg-azure-darker border-l border-azure-border transform translate-x-full transition-transform duration-300 ease-in-out z-50 shadow-2xl">
+        <div class="h-full flex flex-col">
+            <!-- Panel Header -->
+            <div class="flex items-center justify-between p-4 border-b border-azure-border">
+                <h2 class="text-lg font-medium text-white">Checks</h2>
+                <button id="closeChecksPanel" class="text-azure-text-dim hover:text-white">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
             </div>
 
-            <!-- Tags -->
-            <div class="mb-8">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-medium text-white">Tags</h3>
-                    <button class="text-azure-text-dim hover:text-white text-lg">+</button>
+            <!-- Panel Content -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="text-xs text-azure-text-dim mb-4">
+                    The displayed list of checks may be truncated for optimal performance. For a smoother experience, please maintain a reasonable number of policies (fewer than 100).
                 </div>
-                <div class="p-4 rounded-lg border border-azure-border bg-azure-dark/30">
-                    <div class="text-sm text-azure-text-dim">No tags</div>
-                </div>
-            </div>
 
-            <!-- Work Items -->
-            <div class="mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-medium text-white">Work Items</h3>
-                    <button class="text-azure-text-dim hover:text-white text-lg">+</button>
+                <!-- Required Checks Section -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-white mb-3">Required</h3>
+
+                    <!-- Comments must be resolved check -->
+                    <div class="bg-azure-dark rounded-lg border border-azure-border p-4 mb-3">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center text-white mt-0.5">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium text-white mb-1">Comments must be resolved</div>
+                                    <div class="text-xs text-green-400">Succeeded</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button class="text-azure-text-dim hover:text-white text-xs" title="Skip this check">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </button>
+                                <button class="text-azure-blue hover:text-blue-400 text-xs">Details</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="p-4 rounded-lg border border-azure-border bg-azure-dark/30">
-                    <div class="text-sm text-azure-text-dim">No work items</div>
+
+                <!-- Optional Checks Section -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-white mb-3">Optional</h3>
+
+                    <!-- Work items must be linked check -->
+                    <div class="bg-azure-dark rounded-lg border border-azure-border p-4 mb-3">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-white mt-0.5">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium text-white mb-1">Work items must be linked</div>
+                                    <div class="text-xs text-red-400">Failed</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button class="bg-azure-blue hover:bg-blue-600 text-white text-xs px-3 py-1 rounded transition-colors" title="Skip this check">
+                                    Skip
+                                </button>
+                                <button class="text-azure-blue hover:text-blue-400 text-xs">Retry</button>
+                                <button class="text-azure-blue hover:text-blue-400 text-xs">Details</button>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-xs text-azure-text-dim">
+                            This pull request does not have any linked work items. Link a work item to this pull request to track your changes.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions Section -->
+                <div class="border-t border-azure-border pt-4">
+                    <div class="flex space-x-2">
+                        <button class="bg-azure-blue hover:bg-blue-600 text-white text-sm px-4 py-2 rounded transition-colors">
+                            Retry all failed
+                        </button>
+                        <button class="bg-gray-600 hover:bg-gray-700 text-white text-sm px-4 py-2 rounded transition-colors">
+                            Skip all optional
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Overlay for panel -->
+    <div id="panelOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40"></div>
+
     <script>
         const vscode = acquireVsCodeApi();
 
-        // Tab switching
-        document.querySelectorAll('button').forEach(btn => {
-            if (btn.textContent === 'Overview' || btn.textContent === 'Files' || btn.textContent === 'Updates' || btn.textContent === 'Commits' || btn.textContent === 'Conflicts') {
-                btn.addEventListener('click', () => {
-                    // Remove active state from all tabs
-                    document.querySelectorAll('.nav-indicator').forEach(el => {
-                        el.classList.remove('nav-indicator', 'text-azure-blue');
-                        el.classList.add('text-azure-text-dim');
-                    });
+        // Checks panel functionality
+        const checksPanel = document.getElementById('checksPanel');
+        const panelOverlay = document.getElementById('panelOverlay');
+        const toggleChecksBtn = document.getElementById('toggleChecksPanel');
+        const closeChecksBtn = document.getElementById('closeChecksPanel');
 
-                    // Add active state to clicked tab
-                    btn.classList.add('nav-indicator', 'text-azure-blue');
-                    btn.classList.remove('text-azure-text-dim');
+        function openChecksPanel() {
+            checksPanel.classList.remove('translate-x-full');
+            panelOverlay.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeChecksPanel() {
+            checksPanel.classList.add('translate-x-full');
+            panelOverlay.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        toggleChecksBtn.addEventListener('click', openChecksPanel);
+        closeChecksBtn.addEventListener('click', closeChecksPanel);
+        panelOverlay.addEventListener('click', closeChecksPanel);
+
+        // Handle check skip actions
+        document.querySelectorAll('[title="Skip this check"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const checkCard = btn.closest('.bg-azure-dark');
+                const checkName = checkCard.querySelector('.text-white').textContent;
+
+                if (confirm(\`Are you sure you want to skip the check: \${checkName}?\`)) {
+                    // Add skipped state styling
+                    checkCard.classList.add('opacity-60');
+                    const statusElement = checkCard.querySelector('.text-xs');
+                    statusElement.textContent = 'Skipped';
+                    statusElement.className = 'text-xs text-yellow-400';
+
+                    // Update icon
+                    const iconDiv = checkCard.querySelector('.w-5.h-5');
+                    iconDiv.className = 'w-5 h-5 bg-yellow-600 rounded-full flex items-center justify-center text-white mt-0.5';
+                    iconDiv.innerHTML = '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>';
+
+                    vscode.postMessage({
+                        command: 'skipCheck',
+                        checkName: checkName
+                    });
+                }
+            });
+        });
+
+        // Handle retry actions
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.textContent === 'Retry') {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const checkCard = btn.closest('.bg-azure-dark');
+                    const checkName = checkCard.querySelector('.text-white').textContent;
+
+                    // Show running state
+                    const statusElement = checkCard.querySelector('.text-xs');
+                    statusElement.textContent = 'Running...';
+                    statusElement.className = 'text-xs text-yellow-400';
+
+                    // Update icon to loading
+                    const iconDiv = checkCard.querySelector('.w-5.h-5');
+                    iconDiv.className = 'w-5 h-5 bg-yellow-600 rounded-full flex items-center justify-center text-white mt-0.5 animate-spin';
+                    iconDiv.innerHTML = '<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>';
+
+                    vscode.postMessage({
+                        command: 'retryCheck',
+                        checkName: checkName
+                    });
                 });
             }
         });
+
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Remove active state from all tabs
+            document.querySelectorAll('.tab-button').forEach(tab => {
+                tab.classList.remove('nav-indicator', 'text-azure-blue');
+                tab.classList.add('text-azure-text-dim');
+            });
+
+            // Show selected tab content
+            const targetContent = document.getElementById(tabName + 'Content');
+            if (targetContent) {
+                targetContent.classList.remove('hidden');
+            }
+
+            // Add active state to clicked tab
+            const activeTab = document.getElementById(tabName + 'Tab');
+            if (activeTab) {
+                activeTab.classList.add('nav-indicator', 'text-azure-blue');
+                activeTab.classList.remove('text-azure-text-dim');
+            }
+        }
+
+        // Add click event listeners to all tabs
+        document.getElementById('overviewTab').addEventListener('click', () => showTab('overview'));
+        document.getElementById('filesTab').addEventListener('click', () => showTab('files'));
+        document.getElementById('updatesTab').addEventListener('click', () => showTab('updates'));
+        document.getElementById('commitsTab').addEventListener('click', () => showTab('commits'));
+        document.getElementById('conflictsTab').addEventListener('click', () => showTab('conflicts'));
 
         function openInBrowser() {
             vscode.postMessage({
