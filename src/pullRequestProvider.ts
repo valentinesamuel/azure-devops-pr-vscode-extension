@@ -203,6 +203,18 @@ export class PullRequestProvider
         reviewers: ['jane.smith@company.com'],
         description: 'Adds comprehensive unit tests for user service methods',
       },
+      {
+        id: 1240,
+        title: 'Improve driver code generation',
+        author: 'john.doe@company.com',
+        createdDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+        status: 'Abandoned',
+        isDraft: false,
+        targetBranch: 'main',
+        sourceBranch: 'test/user-service',
+        reviewers: ['jane.smith@company.com'],
+        description: 'Added while loop',
+      },
     ];
   }
 
