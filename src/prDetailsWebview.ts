@@ -217,6 +217,7 @@ export class PrDetailsWebviewProvider {
                 <div class="flex-1 bg-azure-darker rounded-lg border border-azure-border content-card overflow-y-auto p-8">
                 <!-- Abandonment Status -->
                 <div class="mb-8">
+                
                     <div class="flex items-center bg-red-900/20 border border-red-600/30 rounded-lg p-4 mb-6">
                         <svg class="w-5 h-5 text-red-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd"/>
@@ -718,7 +719,7 @@ export class PrDetailsWebviewProvider {
     </div>
 
     <!-- Checks Panel (Hidden by default) -->
-    <div id="checksPanel" class="fixed top-0 right-0 h-full w-96 bg-azure-darker border-l border-azure-border transform translate-x-full transition-transform duration-300 ease-in-out z-50 shadow-2xl">
+    <div id="checksPanel" class="fixed top-0 right-0 h-full w-96 bg-azure-darker border-l border-azure-border transform translate-x-full z-50 shadow-2xl">
         <div class="h-full flex flex-col">
             <!-- Panel Header -->
             <div class="flex items-center justify-between p-4 border-b border-azure-border">
@@ -824,6 +825,11 @@ export class PrDetailsWebviewProvider {
         const panelOverlay = document.getElementById('panelOverlay');
         const toggleChecksBtn = document.getElementById('toggleChecksPanel');
         const closeChecksBtn = document.getElementById('closeChecksPanel');
+
+        // Add transition classes after page load to prevent initial animation glitch
+        setTimeout(() => {
+            checksPanel.classList.add('transition-transform', 'duration-300', 'ease-in-out');
+        }, 100);
 
         function openChecksPanel() {
             checksPanel.classList.remove('translate-x-full');
