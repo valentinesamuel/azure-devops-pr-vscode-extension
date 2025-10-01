@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { AuthService } from './services/authService';
 
 export interface PullRequest {
   id: number;
@@ -11,6 +12,19 @@ export interface PullRequest {
   sourceBranch: string;
   reviewers: string[];
   description?: string;
+}
+
+export class SignInItem extends vscode.TreeItem {
+  constructor() {
+    super('Sign in to Azure DevOps', vscode.TreeItemCollapsibleState.None);
+    this.tooltip = 'Click to sign in with your Personal Access Token';
+    this.iconPath = new vscode.ThemeIcon('sign-in');
+    this.contextValue = 'signIn';
+    this.command = {
+      command: 'azureDevOpsPr.signIn',
+      title: 'Sign In',
+    };
+  }
 }
 
 export class PullRequestItem extends vscode.TreeItem {
@@ -74,38 +88,46 @@ export class PullRequestCategoryItem extends vscode.TreeItem {
 }
 
 export class PullRequestProvider
-  implements vscode.TreeDataProvider<PullRequestCategoryItem | PullRequestItem>
+  implements vscode.TreeDataProvider<PullRequestCategoryItem | PullRequestItem | SignInItem>
 {
   private _onDidChangeTreeData: vscode.EventEmitter<
-    PullRequestCategoryItem | PullRequestItem | undefined | null | void
+    PullRequestCategoryItem | PullRequestItem | SignInItem | undefined | null | void
   > = new vscode.EventEmitter<
-    PullRequestCategoryItem | PullRequestItem | undefined | null | void
+    PullRequestCategoryItem | PullRequestItem | SignInItem | undefined | null | void
   >();
   readonly onDidChangeTreeData: vscode.Event<
-    PullRequestCategoryItem | PullRequestItem | undefined | null | void
+    PullRequestCategoryItem | PullRequestItem | SignInItem | undefined | null | void
   > = this._onDidChangeTreeData.event;
 
   private currentUser = 'john.doe@company.com'; // This would come from authentication in real implementation
 
-  constructor() {}
+  constructor(private authService: AuthService) {}
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(element: PullRequestCategoryItem | PullRequestItem): vscode.TreeItem {
+  getTreeItem(element: PullRequestCategoryItem | PullRequestItem | SignInItem): vscode.TreeItem {
     return element;
   }
 
-  getChildren(
-    element?: PullRequestCategoryItem | PullRequestItem,
-  ): Thenable<(PullRequestCategoryItem | PullRequestItem)[]> {
+  async getChildren(
+    element?: PullRequestCategoryItem | PullRequestItem | SignInItem,
+  ): Promise<(PullRequestCategoryItem | PullRequestItem | SignInItem)[]> {
+    // Check if user is authenticated
+    const isAuthenticated = await this.authService.isAuthenticated();
+
+    if (!isAuthenticated && !element) {
+      // Show sign in prompt
+      return [new SignInItem()];
+    }
+
     if (!element) {
       // Return root categories
       const createdByMe = this.getPullRequestsCreatedByMe();
       const waitingForMyReview = this.getPullRequestsWaitingForMyReview();
 
-      return Promise.resolve([
+      return [
         new PullRequestCategoryItem(
           'Created by me',
           createdByMe,
@@ -116,17 +138,15 @@ export class PullRequestProvider
           waitingForMyReview,
           vscode.TreeItemCollapsibleState.Expanded,
         ),
-      ]);
+      ];
     } else if (element instanceof PullRequestCategoryItem) {
       // Return pull requests for this category
-      return Promise.resolve(
-        element.pullRequests.map(
-          (pr) => new PullRequestItem(pr, vscode.TreeItemCollapsibleState.None),
-        ),
+      return element.pullRequests.map(
+        (pr) => new PullRequestItem(pr, vscode.TreeItemCollapsibleState.None),
       );
     }
 
-    return Promise.resolve([]);
+    return [];
   }
 
   private getDummyPullRequests(): PullRequest[] {

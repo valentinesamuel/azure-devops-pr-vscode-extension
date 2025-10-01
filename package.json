@@ -21,12 +21,27 @@
         "command": "azureDevOpsPr.refreshPullRequests",
         "title": "Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "azureDevOpsPr.signIn",
+        "title": "Sign In to Azure DevOps",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "azureDevOpsPr.signOut",
+        "title": "Sign Out from Azure DevOps",
+        "icon": "$(sign-out)"
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "azureDevOpsPr.refreshPullRequests",
+          "when": "view == pullRequests",
+          "group": "navigation"
+        },
+        {
+          "command": "azureDevOpsPr.signOut",
           "when": "view == pullRequests",
           "group": "navigation"
         }

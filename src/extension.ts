@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import { PullRequestProvider, PullRequest } from './pullRequestProvider';
 import { PrDetailsWebviewProvider } from './prDetailsWebview';
+import { AuthService } from './services/authService';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -11,9 +12,28 @@ export function activate(context: vscode.ExtensionContext) {
   // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "azure-devops-pr" is now active!');
 
+  // Initialize authentication service
+  const authService = new AuthService(context);
+
   // Create and register the pull request tree data provider
-  const pullRequestProvider = new PullRequestProvider();
+  const pullRequestProvider = new PullRequestProvider(authService);
   vscode.window.registerTreeDataProvider('pullRequests', pullRequestProvider);
+
+  // Register sign-in command
+  const signInCommand = vscode.commands.registerCommand('azureDevOpsPr.signIn', async () => {
+    const success = await authService.promptForCredentials();
+    if (success) {
+      // Refresh the tree view to show pull requests
+      pullRequestProvider.refresh();
+    }
+  });
+
+  // Register sign-out command
+  const signOutCommand = vscode.commands.registerCommand('azureDevOpsPr.signOut', async () => {
+    await authService.signOut();
+    // Refresh the tree view to show sign-in prompt
+    pullRequestProvider.refresh();
+  });
 
   // Register refresh command for pull requests
   const refreshCommand = vscode.commands.registerCommand(
@@ -55,7 +75,13 @@ export function activate(context: vscode.ExtensionContext) {
     });
   });
 
-  context.subscriptions.push(disposable, refreshCommand, openPrDetailsCommand);
+  context.subscriptions.push(
+    disposable,
+    signInCommand,
+    signOutCommand,
+    refreshCommand,
+    openPrDetailsCommand,
+  );
 }
 
 function getWebViewContent() {
