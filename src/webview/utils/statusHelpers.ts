@@ -35,17 +35,17 @@ export class StatusHelpers {
 
   static getStatusButtonClass(pullRequest: PullRequest): string {
     if (pullRequest.isDraft) {
-      return 'bg-purple-600 hover:bg-purple-700 text-white';
+      return 'bg-purple-600 hover:bg-purple-700 text-vscode-fg';
     }
     switch (pullRequest.status) {
       case 'Active':
-        return 'bg-azure-green hover:bg-green-600 text-white';
+        return 'bg-vscode-success hover:bg-green-600 text-vscode-fg';
       case 'Completed':
-        return 'bg-azure-green hover:bg-green-600 text-white';
+        return 'bg-vscode-success hover:bg-green-600 text-vscode-fg';
       case 'Abandoned':
-        return 'bg-red-600 hover:bg-red-700 text-white';
+        return 'bg-vscode-error hover:bg-red-700 text-vscode-fg';
       default:
-        return 'bg-gray-600 hover:bg-gray-700 text-white';
+        return 'bg-gray-600 hover:bg-gray-700 text-vscode-fg';
     }
   }
 

@@ -4,43 +4,43 @@ export class ChecksPanel {
   static render(): string {
     return `
       <!-- Checks Panel (Hidden by default) -->
-      <div id="checksPanel" class="fixed top-0 right-0 h-full w-96 bg-azure-darker border-l border-azure-border transform translate-x-full z-50 shadow-2xl">
+      <div id="checksPanel" class="fixed top-0 right-0 h-full w-96 bg-vscode-bg border-l border-vscode-border transform translate-x-full z-50 shadow-2xl">
         <div class="h-full flex flex-col">
           <!-- Panel Header -->
-          <div class="flex items-center justify-between p-4 border-b border-azure-border">
-            <h2 class="text-lg font-medium text-white">Checks</h2>
-            <button id="closeChecksPanel" class="text-azure-text-dim hover:text-white">
+          <div class="flex items-center justify-between p-4 border-b border-vscode-border">
+            <h2 class="text-lg font-medium text-vscode-fg">Checks</h2>
+            <button id="closeChecksPanel" class="text-vscode-fg opacity-60 hover:text-vscode-fg">
               ${Icons.close}
             </button>
           </div>
 
           <!-- Panel Content -->
           <div class="flex-1 overflow-y-auto p-4">
-            <div class="text-xs text-azure-text-dim mb-4">
+            <div class="text-xs text-vscode-fg opacity-60 mb-4">
               The displayed list of checks may be truncated for optimal performance. For a smoother experience, please maintain a reasonable number of policies (fewer than 100).
             </div>
 
             <!-- Required Checks Section -->
             <div class="mb-6">
-              <h3 class="text-sm font-medium text-white mb-3">Required</h3>
+              <h3 class="text-sm font-medium text-vscode-fg mb-3">Required</h3>
 
               <!-- Comments must be resolved check -->
-              <div class="bg-azure-dark rounded-lg border border-azure-border p-4 mb-3">
+              <div class="bg-vscode-input-bg rounded-lg border border-vscode-input-border p-4 mb-3">
                 <div class="flex items-start justify-between">
                   <div class="flex items-start space-x-3">
-                    <div class="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center text-white mt-0.5">
+                    <div class="w-5 h-5 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg mt-0.5">
                       ${Icons.check}
                     </div>
                     <div class="flex-1">
-                      <div class="text-sm font-medium text-white mb-1">Comments must be resolved</div>
-                      <div class="text-xs text-green-400">Succeeded</div>
+                      <div class="text-sm font-medium text-vscode-fg mb-1">Comments must be resolved</div>
+                      <div class="text-xs text-vscode-success">Succeeded</div>
                     </div>
                   </div>
                   <div class="flex items-center space-x-2">
-                    <button class="text-azure-text-dim hover:text-white text-xs" title="Skip this check">
+                    <button class="text-vscode-fg opacity-60 hover:text-vscode-fg text-xs" title="Skip this check">
                       ${Icons.close}
                     </button>
-                    <button class="text-azure-blue hover:text-blue-400 text-xs">Details</button>
+                    <button class="text-vscode-link hover:text-blue-400 text-xs">Details</button>
                   </div>
                 </div>
               </div>
@@ -48,41 +48,41 @@ export class ChecksPanel {
 
             <!-- Optional Checks Section -->
             <div class="mb-6">
-              <h3 class="text-sm font-medium text-white mb-3">Optional</h3>
+              <h3 class="text-sm font-medium text-vscode-fg mb-3">Optional</h3>
 
               <!-- Work items must be linked check -->
-              <div class="bg-azure-dark rounded-lg border border-azure-border p-4 mb-3">
+              <div class="bg-vscode-input-bg rounded-lg border border-vscode-input-border p-4 mb-3">
                 <div class="flex items-start justify-between">
                   <div class="flex items-start space-x-3">
-                    <div class="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-white mt-0.5">
+                    <div class="w-5 h-5 bg-vscode-error rounded-full flex items-center justify-center text-vscode-fg mt-0.5">
                       ${Icons.close}
                     </div>
                     <div class="flex-1">
-                      <div class="text-sm font-medium text-white mb-1">Work items must be linked</div>
-                      <div class="text-xs text-red-400">Failed</div>
+                      <div class="text-sm font-medium text-vscode-fg mb-1">Work items must be linked</div>
+                      <div class="text-xs text-vscode-error">Failed</div>
                     </div>
                   </div>
                   <div class="flex items-center space-x-2">
-                    <button class="bg-azure-blue hover:bg-blue-600 text-white text-xs px-3 py-1 rounded transition-colors" title="Skip this check">
+                    <button class="bg-vscode-info hover:bg-blue-600 text-vscode-fg text-xs px-3 py-1 rounded transition-colors" title="Skip this check">
                       Skip
                     </button>
-                    <button class="text-azure-blue hover:text-blue-400 text-xs">Retry</button>
-                    <button class="text-azure-blue hover:text-blue-400 text-xs">Details</button>
+                    <button class="text-vscode-link hover:text-blue-400 text-xs">Retry</button>
+                    <button class="text-vscode-link hover:text-blue-400 text-xs">Details</button>
                   </div>
                 </div>
-                <div class="mt-3 text-xs text-azure-text-dim">
+                <div class="mt-3 text-xs text-vscode-fg opacity-60">
                   This pull request does not have any linked work items. Link a work item to this pull request to track your changes.
                 </div>
               </div>
             </div>
 
             <!-- Actions Section -->
-            <div class="border-t border-azure-border pt-4">
+            <div class="border-t border-vscode-border pt-4">
               <div class="flex space-x-2">
-                <button class="bg-azure-blue hover:bg-blue-600 text-white text-sm px-4 py-2 rounded transition-colors">
+                <button class="bg-vscode-info hover:bg-blue-600 text-vscode-fg text-sm px-4 py-2 rounded transition-colors">
                   Retry all failed
                 </button>
-                <button class="bg-gray-600 hover:bg-gray-700 text-white text-sm px-4 py-2 rounded transition-colors">
+                <button class="bg-gray-600 hover:bg-gray-700 text-vscode-fg text-sm px-4 py-2 rounded transition-colors">
                   Skip all optional
                 </button>
               </div>
@@ -128,8 +128,8 @@ export class ChecksPanel {
       document.querySelectorAll('[title="Skip this check"]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
-          const checkCard = btn.closest('.bg-azure-dark');
-          const checkName = checkCard.querySelector('.text-white').textContent;
+          const checkCard = btn.closest('.bg-vscode-input-bg');
+          const checkName = checkCard.querySelector('.text-vscode-fg').textContent;
 
           if (confirm(\`Are you sure you want to skip the check: \${checkName}?\`)) {
             // Add skipped state styling
@@ -156,8 +156,8 @@ export class ChecksPanel {
         if (btn.textContent === 'Retry') {
           btn.addEventListener('click', (e) => {
             e.preventDefault();
-            const checkCard = btn.closest('.bg-azure-dark');
-            const checkName = checkCard.querySelector('.text-white').textContent;
+            const checkCard = btn.closest('.bg-vscode-input-bg');
+            const checkName = checkCard.querySelector('.text-vscode-fg').textContent;
 
             // Show running state
             const statusElement = checkCard.querySelector('.text-xs');

@@ -11,9 +11,9 @@ export class WebviewLayout {
     return `<!DOCTYPE html>
 <html lang="en">
 ${WebviewStyles.getHtmlHead()}
-<body class="bg-azure-dark text-azure-text font-sans h-screen overflow-hidden">
+<body class="bg-vscode-input-bg text-vscode-fg font-sans h-screen overflow-hidden">
   <!-- Main Content -->
-  <div class="h-full bg-azure-dark p-6 flex flex-col">
+  <div class="h-full bg-vscode-input-bg p-6 flex flex-col">
     <!-- PR Header - Full Width -->
     ${PrHeader.render(pullRequest)}
 
@@ -77,11 +77,11 @@ ${WebviewStyles.getHtmlHead()}
     function selectFile(button, fileName) {
       // Remove active state from all file items
       document.querySelectorAll('.file-item').forEach(item => {
-        item.classList.remove('bg-azure-blue/20', 'text-white');
+        item.classList.remove('bg-vscode-info', 'opacity-20', 'text-vscode-fg');
       });
 
       // Add active state to selected file
-      button.classList.add('bg-azure-blue/20', 'text-white');
+      button.classList.add('bg-vscode-info', 'opacity-20', 'text-vscode-fg');
 
       // Show diff view
       const emptyState = document.getElementById('emptyState');

@@ -1,14 +1,14 @@
 export class TabNavigation {
   static render(): string {
     return `
-      <div class="bg-azure-darker rounded-lg border border-azure-border content-card mb-6 flex-shrink-0">
-        <div class="border-b border-azure-border">
+      <div class="bg-vscode-bg rounded-lg border border-vscode-border content-card mb-6 flex-shrink-0">
+        <div class="border-b border-vscode-border">
           <div class="flex px-8">
-            <button id="overviewTab" class="tab-button relative px-6 py-4 text-sm font-medium text-azure-blue nav-indicator">Overview</button>
-            <button id="filesTab" class="tab-button px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Files</button>
-            <button id="updatesTab" class="tab-button px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Updates</button>
-            <button id="commitsTab" class="tab-button px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Commits</button>
-            <button id="conflictsTab" class="tab-button px-6 py-4 text-sm font-medium text-azure-text-dim hover:text-white">Conflicts</button>
+            <button id="overviewTab" class="tab-button relative px-6 py-4 text-sm font-medium text-vscode-link nav-indicator">Overview</button>
+            <button id="filesTab" class="tab-button px-6 py-4 text-sm font-medium text-vscode-fg opacity-60 hover:text-vscode-fg">Files</button>
+            <button id="updatesTab" class="tab-button px-6 py-4 text-sm font-medium text-vscode-fg opacity-60 hover:text-vscode-fg">Updates</button>
+            <button id="commitsTab" class="tab-button px-6 py-4 text-sm font-medium text-vscode-fg opacity-60 hover:text-vscode-fg">Commits</button>
+            <button id="conflictsTab" class="tab-button px-6 py-4 text-sm font-medium text-vscode-fg opacity-60 hover:text-vscode-fg">Conflicts</button>
           </div>
         </div>
       </div>`;
@@ -25,8 +25,8 @@ export class TabNavigation {
 
         // Remove active state from all tabs
         document.querySelectorAll('.tab-button').forEach(tab => {
-          tab.classList.remove('nav-indicator', 'text-azure-blue');
-          tab.classList.add('text-azure-text-dim');
+          tab.classList.remove('nav-indicator', 'text-vscode-link');
+          tab.classList.add('text-vscode-fg', 'opacity-60');
         });
 
         // Show selected tab content
@@ -38,8 +38,8 @@ export class TabNavigation {
         // Add active state to clicked tab
         const activeTab = document.getElementById(tabName + 'Tab');
         if (activeTab) {
-          activeTab.classList.add('nav-indicator', 'text-azure-blue');
-          activeTab.classList.remove('text-azure-text-dim');
+          activeTab.classList.add('nav-indicator', 'text-vscode-link');
+          activeTab.classList.remove('text-vscode-fg', 'opacity-60');
         }
       }
 
