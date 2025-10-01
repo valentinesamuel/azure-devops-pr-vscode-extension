@@ -1,21 +1,29 @@
 import * as vscode from 'vscode';
+import { UserProfileService } from './userProfileService';
+import { GitService } from './gitService';
 
 export class AuthService {
   private static readonly SECRET_KEY = 'azureDevOpsPat';
+  private userProfileService: UserProfileService;
+  private gitService: GitService;
 
-  constructor(private context: vscode.ExtensionContext) {}
+  constructor(private context: vscode.ExtensionContext) {
+    this.userProfileService = new UserProfileService(context);
+    this.gitService = new GitService();
+  }
 
   /**
    * Prompts user to enter their Azure DevOps Personal Access Token
    * and securely stores it in VS Code's secret storage.
    * Organization and project information will be automatically detected from git remotes.
+   * Fetches and stores user profile after successful authentication.
    */
   async promptForCredentials(): Promise<boolean> {
     try {
       // Get PAT
       const pat = await vscode.window.showInputBox({
         prompt: 'Enter your Azure DevOps Personal Access Token',
-        placeHolder: 'Paste your PAT here (with Code: Read permissions)',
+        placeHolder: 'Paste your PAT here (with Code: Read and User Profile: Read permissions)',
         password: true,
         ignoreFocusOut: true,
         validateInput: (value) => {
@@ -36,16 +44,47 @@ export class AuthService {
       // Store PAT securely
       await this.context.secrets.store(AuthService.SECRET_KEY, pat);
 
-      vscode.window.showInformationMessage(
-        'Successfully authenticated with Azure DevOps! Organization and project information will be detected from your git remotes.',
-      );
+      // Detect organization from git remotes
+      const repositories = await this.gitService.detectAzureDevOpsRepositories();
 
-      console.log('🚀🚀🚀 AZDO PAT stored successfully 🚀🚀🚀');
+      if (repositories.length === 0) {
+        vscode.window.showWarningMessage(
+          'No Azure DevOps repositories detected in workspace. Profile will be fetched when you open a repository.',
+        );
+        return true;
+      }
+
+      // Use the first repository's organization to fetch profile
+      const organization = repositories[0].organization;
+
+      // Fetch and store user profile
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Fetching Azure DevOps user profile...',
+          cancellable: false,
+        },
+        async (progress) => {
+          try {
+            const profile = await this.userProfileService.fetchAndStoreProfile(organization, pat);
+            vscode.window.showInformationMessage(
+              `Successfully authenticated as ${profile.displayName}! Organization and project information detected from git remotes.`,
+            );
+            console.log('🚀🚀🚀 AZDO Authentication successful 🚀🚀🚀');
+            console.log('=========================');
+            console.table(profile);
+          } catch (error) {
+            vscode.window.showWarningMessage(
+              `Authentication successful but failed to fetch profile: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            );
+          }
+        },
+      );
 
       return true;
     } catch (error) {
       vscode.window.showErrorMessage(
-        `Failed to store credentials: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to authenticate: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       return false;
     }
@@ -67,10 +106,18 @@ export class AuthService {
   }
 
   /**
-   * Signs out the user by removing stored credentials
+   * Signs out the user by removing stored credentials and profile
    */
   async signOut(): Promise<void> {
     await this.context.secrets.delete(AuthService.SECRET_KEY);
+    await this.userProfileService.clearProfile();
     vscode.window.showInformationMessage('Successfully signed out from Azure DevOps');
+  }
+
+  /**
+   * Gets the user profile service
+   */
+  getUserProfileService(): UserProfileService {
+    return this.userProfileService;
   }
 }

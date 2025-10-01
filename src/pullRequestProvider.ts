@@ -111,11 +111,18 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
   readonly onDidChangeTreeData: vscode.Event<TreeElement | undefined | null | void> =
     this._onDidChangeTreeData.event;
 
-  private currentUser = 'john.doe@company.com'; // This would come from authentication in real implementation
   private gitService: GitService;
 
   constructor(private authService: AuthService) {
     this.gitService = new GitService();
+  }
+
+  /**
+   * Gets the current user's email from the stored profile
+   */
+  private getCurrentUserEmail(): string {
+    const userProfile = this.authService.getUserProfileService().getStoredProfile();
+    return userProfile?.emailAddress || 'unknown@user.com';
   }
 
   refresh(): void {
@@ -138,9 +145,6 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
     if (!element) {
       // Root level: Show repositories
       const repositories = await this.gitService.detectAzureDevOpsRepositories();
-
-      console.table('Detected Azure Repos!!');
-      console.table(repositories);
 
       if (repositories.length === 0) {
         // No Azure DevOps repositories found
@@ -270,19 +274,21 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
   private getPullRequestsCreatedByMe(repository: AzureDevOpsRepository): PullRequest[] {
     // In a real implementation, this would fetch PRs from Azure DevOps API
     // filtered by the specific repository
+    const currentUserEmail = this.getCurrentUserEmail();
     return this.getDummyPullRequests()
-      .filter((pr) => pr.author === this.currentUser)
+      .filter((pr) => pr.author === currentUserEmail)
       .map((pr) => ({ ...pr, repository }));
   }
 
   private getPullRequestsWaitingForMyReview(repository: AzureDevOpsRepository): PullRequest[] {
     // In a real implementation, this would fetch PRs from Azure DevOps API
     // filtered by the specific repository
+    const currentUserEmail = this.getCurrentUserEmail();
     return this.getDummyPullRequests()
       .filter(
         (pr) =>
-          pr.author !== this.currentUser &&
-          pr.reviewers.includes(this.currentUser) &&
+          pr.author !== currentUserEmail &&
+          pr.reviewers.includes(currentUserEmail) &&
           pr.status === 'Active',
       )
       .map((pr) => ({ ...pr, repository }));

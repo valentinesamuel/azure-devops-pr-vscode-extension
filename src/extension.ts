@@ -7,13 +7,16 @@ import { AuthService } from './services/authService';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "azure-devops-pr" is now active!');
 
   // Initialize authentication service
   const authService = new AuthService(context);
+
+  // Log user profile if authenticated
+  await logUserProfile(authService);
 
   // Create and register the pull request tree data provider
   const pullRequestProvider = new PullRequestProvider(authService);
@@ -82,6 +85,39 @@ export function activate(context: vscode.ExtensionContext) {
     refreshCommand,
     openPrDetailsCommand,
   );
+}
+
+/**
+ * Logs the user profile information if the user is authenticated
+ */
+async function logUserProfile(authService: AuthService) {
+  try {
+    const isAuthenticated = await authService.isAuthenticated();
+
+    if (isAuthenticated) {
+      const userProfileService = authService.getUserProfileService();
+      const profile = userProfileService.getStoredProfile();
+
+      if (profile) {
+        console.log('═══════════════════════════════════════════════════');
+        console.log('🔐 Azure DevOps User Profile');
+        console.log('═══════════════════════════════════════════════════');
+        console.table({
+          'Display Name': profile.displayName,
+          'Email Address': profile.emailAddress,
+          'Public Alias': profile.publicAlias,
+          'User ID': profile.id,
+        });
+        console.log('═══════════════════════════════════════════════════');
+      } else {
+        console.log('⚠️  User is authenticated but profile not found in storage');
+      }
+    } else {
+      console.log('ℹ️  User is not authenticated. Use "Sign In to Azure DevOps" to login.');
+    }
+  } catch (error) {
+    console.error('Error logging user profile:', error);
+  }
 }
 
 function getWebViewContent() {

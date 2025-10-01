@@ -55,7 +55,6 @@ export class GitService {
         cwd: folderPath,
       });
 
-      console.log('REMOTE URL', stdout);
       return stdout.trim();
     } catch (error) {
       // Not a git repository or no remote configured
