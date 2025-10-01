@@ -1,4 +1,6 @@
 import { Icons } from '../utils/icons';
+import { CommentGenerator, CommentData } from '../utils/commentGenerator';
+import { PullRequest } from '../../pullRequestProvider';
 
 export class TimelineComponents {
   static renderCommentInput(): string {
@@ -165,13 +167,303 @@ export class TimelineComponents {
       </div>`;
   }
 
-  static renderTimelineSection(): string {
+  static renderTimelineSection(pullRequest: PullRequest): string {
+    const comments = CommentGenerator.generateRandomComments(pullRequest, 4);
+    const renderedComments = comments
+      .map((comment) => this.renderDynamicComment(comment))
+      .join('\n');
+
     return `
       <div class="space-y-6">
-        ${this.renderMergeConflictComment()}
-        ${this.renderCommitActivity()}
-        ${this.renderApprovalActivity()}
-        ${this.renderCreationActivity()}
+        ${renderedComments}
+      </div>`;
+  }
+
+  static renderDynamicComment(comment: CommentData): string {
+    switch (comment.type) {
+      case 'merge_conflict':
+        return this.renderMergeConflictFromData(comment);
+      case 'code_review':
+        return this.renderCodeReviewComment(comment);
+      case 'general':
+        return this.renderGeneralComment(comment);
+      case 'commit_push':
+        return this.renderCommitPushFromData(comment);
+      case 'approval':
+        return this.renderApprovalFromData(comment);
+      case 'creation':
+        return this.renderCreationFromData(comment);
+      case 'build_failure':
+        return this.renderBuildFailureComment(comment);
+      case 'security_scan':
+        return this.renderSecurityScanComment(comment);
+      default:
+        return this.renderGeneralComment(comment);
+    }
+  }
+
+  static renderMergeConflictFromData(comment: CommentData): string {
+    const isMultiple = comment.files && comment.files.length > 1;
+    const statusClass = comment.status === 'resolved' ? 'text-azure-green' : 'text-azure-text-dim';
+    const statusText = comment.status === 'resolved' ? 'Resolved' : 'Active';
+    const buttonText = comment.status === 'resolved' ? 'Reactivate' : 'Resolve';
+    const buttonClass =
+      comment.status === 'resolved' ? 'bg-gray-600' : 'bg-azure-blue hover:bg-blue-600';
+
+    return `
+      <div class="relative">
+        <div class="timeline-dot absolute left-4 top-6"></div>
+        <div class="flex items-start space-x-4 ml-8">
+          <div class="w-8 h-8 bg-azure-blue rounded-full flex items-center justify-center text-white text-sm font-medium">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center space-x-2 mb-2">
+              <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+                ${comment.avatarInitials}
+              </div>
+              <span class="text-white font-medium">${comment.author} resolved merge conflicts</span>
+              <span class="text-azure-text-dim text-xs">${comment.timestamp}</span>
+            </div>
+            <div class="bg-azure-darker rounded-lg border border-azure-border p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-2">
+                  <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+                    ${comment.avatarInitials}
+                  </div>
+                  <span class="text-white text-sm">${comment.author}</span>
+                  <span class="text-azure-text-dim text-xs">${comment.timestamp}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button class="text-azure-text-dim hover:text-white">
+                    ${Icons.edit}
+                  </button>
+                  <div class="flex items-center space-x-1">
+                    <svg class="w-4 h-4 text-azure-text-dim" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="${statusClass} text-xs font-medium">${statusText}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-sm text-azure-text mb-3">${comment.content}</div>
+              <div class="mb-4">
+                ${
+                  isMultiple
+                    ? `<ul class="list-disc list-inside space-y-1 ml-2">
+                    ${comment.files!.map((file) => `<li class="text-azure-blue text-sm hover:underline cursor-pointer">${file}</li>`).join('')}
+                  </ul>`
+                    : `<div class="text-azure-blue text-sm hover:underline cursor-pointer">${comment.files![0]}</div>`
+                }
+              </div>
+              <div class="border-t border-azure-border pt-3">
+                <div class="flex items-center space-x-3">
+                  <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+                    ${comment.avatarInitials}
+                  </div>
+                  <input type="text" placeholder="Write a reply..." class="flex-1 bg-azure-dark border border-azure-border rounded px-3 py-2 text-sm text-azure-text placeholder-azure-text-dim focus:outline-none focus:border-azure-blue"/>
+                  <button class="${buttonClass} text-white px-3 py-2 rounded text-sm font-medium transition-colors">${buttonText}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  static renderCodeReviewComment(comment: CommentData): string {
+    return `
+      <div class="relative">
+        <div class="timeline-dot absolute left-4 top-6"></div>
+        <div class="flex items-start space-x-4 ml-8">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+            ${comment.avatarInitials}
+          </div>
+          <div class="flex-1">
+            <div class="bg-azure-darker rounded-lg border border-azure-border p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-2">
+                  <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+                    ${comment.avatarInitials}
+                  </div>
+                  <span class="text-white text-sm">${comment.author}</span>
+                  <span class="text-azure-text-dim text-xs">${comment.timestamp}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button class="text-azure-text-dim hover:text-white">
+                    ${Icons.edit}
+                  </button>
+                  <div class="flex items-center space-x-1">
+                    <span class="text-azure-text-dim text-xs">Active</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-sm text-azure-text mb-3">${comment.content}</div>
+              <div class="border-t border-azure-border pt-3">
+                <div class="flex items-center space-x-3">
+                  <div class="w-6 h-6 bg-azure-green rounded-full flex items-center justify-center text-white text-xs">VS</div>
+                  <input type="text" placeholder="Write a reply..." class="flex-1 bg-azure-dark border border-azure-border rounded px-3 py-2 text-sm text-azure-text placeholder-azure-text-dim focus:outline-none focus:border-azure-blue"/>
+                  <button class="bg-azure-blue hover:bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium transition-colors">Reply</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  static renderGeneralComment(comment: CommentData): string {
+    return `
+      <div class="relative">
+        <div class="timeline-dot absolute left-4 top-6"></div>
+        <div class="flex items-start space-x-4 ml-8">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+            ${comment.avatarInitials}
+          </div>
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center space-x-2">
+              <span class="text-white text-sm">${comment.author} ${comment.content}</span>
+            </div>
+            <span class="text-azure-text-dim text-xs">${comment.timestamp}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  static renderCommitPushFromData(comment: CommentData): string {
+    return `
+      <div class="relative">
+        <div class="timeline-dot absolute left-4 top-6"></div>
+        <div class="flex items-start space-x-4 ml-8">
+          <div class="w-8 h-8 bg-azure-blue rounded-full flex items-center justify-center text-white text-sm font-medium">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center space-x-2">
+                <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+                  ${comment.avatarInitials}
+                </div>
+                <span class="text-white font-medium">${comment.author} pushed 1 commit</span>
+              </div>
+              <span class="text-azure-text-dim text-xs">${comment.timestamp}</span>
+            </div>
+            <div class="bg-azure-dark rounded-lg border border-azure-border p-4">
+              <div class="text-sm text-white mb-2">${comment.content}</div>
+              <div class="flex items-center space-x-3 text-xs text-azure-text-dim">
+                <span class="font-mono bg-azure-darker px-2 py-1 rounded">${Math.random().toString(36).substr(2, 8)}</span>
+                <div class="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-medium" style="background-color: ${comment.avatarColor}">
+                  ${comment.avatarInitials}
+                </div>
+                <span>${comment.author.toLowerCase().replace(' ', '')}</span>
+                <span>${comment.timestamp}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  static renderApprovalFromData(comment: CommentData): string {
+    return `
+      <div class="relative">
+        <div class="timeline-dot absolute left-4 top-6"></div>
+        <div class="flex items-start space-x-4 ml-8">
+          <div class="w-6 h-6 bg-azure-green rounded-full flex items-center justify-center text-white text-xs">
+            ${Icons.check}
+          </div>
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center space-x-2">
+              <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+                ${comment.avatarInitials}
+              </div>
+              <span class="text-white text-sm">${comment.content}</span>
+            </div>
+            <span class="text-azure-text-dim text-xs">${comment.timestamp}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  static renderCreationFromData(comment: CommentData): string {
+    return `
+      <div class="relative">
+        <div class="timeline-dot absolute left-4 top-6"></div>
+        <div class="flex items-start space-x-4 ml-8">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+            ${comment.avatarInitials}
+          </div>
+          <div class="flex items-center justify-between w-full">
+            <div class="text-sm">
+              <span class="text-white">${comment.content}</span>
+            </div>
+            <span class="text-azure-text-dim text-xs">${comment.timestamp}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  static renderBuildFailureComment(comment: CommentData): string {
+    const isFailure = comment.content.toLowerCase().includes('failed');
+    const bgColor = isFailure
+      ? 'bg-red-900/20 border-red-600/30'
+      : 'bg-green-900/20 border-green-600/30';
+    const iconColor = isFailure ? 'bg-red-600' : 'bg-green-600';
+    const icon = isFailure ? Icons.close : Icons.check;
+
+    return `
+      <div class="relative">
+        <div class="timeline-dot absolute left-4 top-6"></div>
+        <div class="flex items-start space-x-4 ml-8">
+          <div class="w-6 h-6 ${iconColor} rounded-full flex items-center justify-center text-white text-xs">
+            ${icon}
+          </div>
+          <div class="flex-1">
+            <div class="${bgColor} rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                  <span class="text-white font-medium">${comment.author}</span>
+                  <span class="text-azure-text-dim text-xs">${comment.timestamp}</span>
+                </div>
+              </div>
+              <div class="text-sm text-white">${comment.content}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  static renderSecurityScanComment(comment: CommentData): string {
+    const isSuccess = comment.content.toLowerCase().includes('no security');
+    const bgColor = isSuccess
+      ? 'bg-green-900/20 border-green-600/30'
+      : 'bg-yellow-900/20 border-yellow-600/30';
+    const iconColor = isSuccess ? 'bg-green-600' : 'bg-yellow-600';
+    const icon = isSuccess ? Icons.check : Icons.warning;
+
+    return `
+      <div class="relative">
+        <div class="timeline-dot absolute left-4 top-6"></div>
+        <div class="flex items-start space-x-4 ml-8">
+          <div class="w-6 h-6 ${iconColor} rounded-full flex items-center justify-center text-white text-xs">
+            ${icon}
+          </div>
+          <div class="flex-1">
+            <div class="${bgColor} rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                  <span class="text-white font-medium">${comment.author}</span>
+                  <span class="text-azure-text-dim text-xs">${comment.timestamp}</span>
+                </div>
+              </div>
+              <div class="text-sm text-white">${comment.content}</div>
+            </div>
+          </div>
+        </div>
       </div>`;
   }
 }

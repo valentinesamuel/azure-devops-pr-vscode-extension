@@ -59,6 +59,41 @@ ${WebviewStyles.getHtmlHead()}
         prId: ${pullRequest.id}
       });
     }
+
+    // File Tree Functions
+    function toggleFolder(button) {
+      const folderContent = button.parentElement.querySelector('.folder-content');
+      const chevron = button.querySelector('.folder-chevron');
+
+      if (folderContent.classList.contains('hidden')) {
+        folderContent.classList.remove('hidden');
+        chevron.style.transform = 'rotate(90deg)';
+      } else {
+        folderContent.classList.add('hidden');
+        chevron.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    function selectFile(button, fileName) {
+      // Remove active state from all file items
+      document.querySelectorAll('.file-item').forEach(item => {
+        item.classList.remove('bg-azure-blue/20', 'text-white');
+      });
+
+      // Add active state to selected file
+      button.classList.add('bg-azure-blue/20', 'text-white');
+
+      // Show diff view
+      const emptyState = document.getElementById('emptyState');
+      const diffView = document.getElementById('diffView');
+      const fileNameElement = document.getElementById('fileName');
+
+      if (emptyState && diffView && fileNameElement) {
+        emptyState.classList.add('hidden');
+        diffView.classList.remove('hidden');
+        fileNameElement.textContent = fileName;
+      }
+    }
   </script>
 </body>
 </html>`;

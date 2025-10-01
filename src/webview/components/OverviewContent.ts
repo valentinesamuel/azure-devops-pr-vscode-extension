@@ -36,7 +36,7 @@ export class OverviewContent {
         ${this.renderDescription(pullRequest)}
         ${this.renderShowEverythingDropdown()}
         ${TimelineComponents.renderCommentInput()}
-        ${TimelineComponents.renderTimelineSection()}
+        ${TimelineComponents.renderTimelineSection(pullRequest)}
       </div>`;
   }
 
