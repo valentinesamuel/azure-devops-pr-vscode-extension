@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { AuthService } from './services/authService';
+import { GitService, AzureDevOpsRepository } from './services/gitService';
 
 export interface PullRequest {
   id: number;
@@ -12,6 +13,7 @@ export interface PullRequest {
   sourceBranch: string;
   reviewers: string[];
   description?: string;
+  repository?: AzureDevOpsRepository; // Link PR to its repository
 }
 
 export class SignInItem extends vscode.TreeItem {
@@ -87,33 +89,44 @@ export class PullRequestCategoryItem extends vscode.TreeItem {
   }
 }
 
-export class PullRequestProvider
-  implements vscode.TreeDataProvider<PullRequestCategoryItem | PullRequestItem | SignInItem>
-{
-  private _onDidChangeTreeData: vscode.EventEmitter<
-    PullRequestCategoryItem | PullRequestItem | SignInItem | undefined | null | void
-  > = new vscode.EventEmitter<
-    PullRequestCategoryItem | PullRequestItem | SignInItem | undefined | null | void
-  >();
-  readonly onDidChangeTreeData: vscode.Event<
-    PullRequestCategoryItem | PullRequestItem | SignInItem | undefined | null | void
-  > = this._onDidChangeTreeData.event;
+export class RepositoryItem extends vscode.TreeItem {
+  constructor(
+    public readonly repository: AzureDevOpsRepository,
+    public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+  ) {
+    const label = `${repository.project} / ${repository.repository}`;
+    super(label, collapsibleState);
+    this.tooltip = `${repository.organization}/${repository.project}/${repository.repository}`;
+    this.description = repository.workspaceFolder.name;
+    this.contextValue = 'repository';
+    this.iconPath = new vscode.ThemeIcon('repo');
+  }
+}
+
+type TreeElement = RepositoryItem | PullRequestCategoryItem | PullRequestItem | SignInItem;
+
+export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement> {
+  private _onDidChangeTreeData: vscode.EventEmitter<TreeElement | undefined | null | void> =
+    new vscode.EventEmitter<TreeElement | undefined | null | void>();
+  readonly onDidChangeTreeData: vscode.Event<TreeElement | undefined | null | void> =
+    this._onDidChangeTreeData.event;
 
   private currentUser = 'john.doe@company.com'; // This would come from authentication in real implementation
+  private gitService: GitService;
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) {
+    this.gitService = new GitService();
+  }
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(element: PullRequestCategoryItem | PullRequestItem | SignInItem): vscode.TreeItem {
+  getTreeItem(element: TreeElement): vscode.TreeItem {
     return element;
   }
 
-  async getChildren(
-    element?: PullRequestCategoryItem | PullRequestItem | SignInItem,
-  ): Promise<(PullRequestCategoryItem | PullRequestItem | SignInItem)[]> {
+  async getChildren(element?: TreeElement): Promise<TreeElement[]> {
     // Check if user is authenticated
     const isAuthenticated = await this.authService.isAuthenticated();
 
@@ -123,9 +136,25 @@ export class PullRequestProvider
     }
 
     if (!element) {
-      // Return root categories
-      const createdByMe = this.getPullRequestsCreatedByMe();
-      const waitingForMyReview = this.getPullRequestsWaitingForMyReview();
+      // Root level: Show repositories
+      const repositories = await this.gitService.detectAzureDevOpsRepositories();
+
+      console.table('Detected Azure Repos!!');
+      console.table(repositories);
+
+      if (repositories.length === 0) {
+        // No Azure DevOps repositories found
+        return [];
+      }
+
+      // Return repository items
+      return repositories.map(
+        (repo) => new RepositoryItem(repo, vscode.TreeItemCollapsibleState.Expanded),
+      );
+    } else if (element instanceof RepositoryItem) {
+      // Return categories for this repository
+      const createdByMe = this.getPullRequestsCreatedByMe(element.repository);
+      const waitingForMyReview = this.getPullRequestsWaitingForMyReview(element.repository);
 
       return [
         new PullRequestCategoryItem(
@@ -238,16 +267,24 @@ export class PullRequestProvider
     ];
   }
 
-  private getPullRequestsCreatedByMe(): PullRequest[] {
-    return this.getDummyPullRequests().filter((pr) => pr.author === this.currentUser);
+  private getPullRequestsCreatedByMe(repository: AzureDevOpsRepository): PullRequest[] {
+    // In a real implementation, this would fetch PRs from Azure DevOps API
+    // filtered by the specific repository
+    return this.getDummyPullRequests()
+      .filter((pr) => pr.author === this.currentUser)
+      .map((pr) => ({ ...pr, repository }));
   }
 
-  private getPullRequestsWaitingForMyReview(): PullRequest[] {
-    return this.getDummyPullRequests().filter(
-      (pr) =>
-        pr.author !== this.currentUser &&
-        pr.reviewers.includes(this.currentUser) &&
-        pr.status === 'Active',
-    );
+  private getPullRequestsWaitingForMyReview(repository: AzureDevOpsRepository): PullRequest[] {
+    // In a real implementation, this would fetch PRs from Azure DevOps API
+    // filtered by the specific repository
+    return this.getDummyPullRequests()
+      .filter(
+        (pr) =>
+          pr.author !== this.currentUser &&
+          pr.reviewers.includes(this.currentUser) &&
+          pr.status === 'Active',
+      )
+      .map((pr) => ({ ...pr, repository }));
   }
 }
