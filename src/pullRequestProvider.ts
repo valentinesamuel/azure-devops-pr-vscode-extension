@@ -183,11 +183,12 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
   }
 
   private getDummyPullRequests(): PullRequest[] {
+    const currentUserEmail = this.getCurrentUserEmail();
     return [
       {
         id: 1234,
         title: 'Add user authentication to login page',
-        author: 'john.doe@company.com',
+        author: currentUserEmail,
         createdDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
         status: 'Active',
         isDraft: false,
@@ -211,7 +212,7 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
       {
         id: 1236,
         title: 'Update API documentation',
-        author: 'john.doe@company.com',
+        author: currentUserEmail,
         createdDate: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
         status: 'Active',
         isDraft: true,
@@ -229,7 +230,7 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
         isDraft: false,
         targetBranch: 'main',
         sourceBranch: 'feature/dark-mode',
-        reviewers: ['john.doe@company.com', 'jane.smith@company.com'],
+        reviewers: [currentUserEmail, 'jane.smith@company.com'],
         description: 'Adds dark mode support with theme switching',
       },
       {
@@ -241,13 +242,13 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
         isDraft: false,
         targetBranch: 'main',
         sourceBranch: 'refactor/db-connection',
-        reviewers: ['john.doe@company.com'],
+        reviewers: [currentUserEmail],
         description: 'Improves database connection pooling and error handling',
       },
       {
         id: 1239,
         title: 'Add unit tests for user service',
-        author: 'john.doe@company.com',
+        author: currentUserEmail,
         createdDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
         status: 'Completed',
         isDraft: false,
@@ -259,7 +260,7 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
       {
         id: 1240,
         title: 'Improve driver code generation',
-        author: 'john.doe@company.com',
+        author: currentUserEmail,
         createdDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
         status: 'Abandoned',
         isDraft: false,

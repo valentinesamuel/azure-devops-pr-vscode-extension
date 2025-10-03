@@ -3,7 +3,17 @@ import { PullRequest } from './pullRequestProvider';
 import { WebviewLayout } from './webview/components/WebviewLayout';
 
 export class PrDetailsWebviewProvider {
+  private static activePanels: Map<number, vscode.WebviewPanel> = new Map();
+
   public static createOrShow(extensionUri: vscode.Uri, pullRequest: PullRequest) {
+    // Check if a panel for this PR already exists
+    const existingPanel = this.activePanels.get(pullRequest.id);
+    if (existingPanel) {
+      // Panel exists, just reveal it
+      existingPanel.reveal();
+      return;
+    }
+
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
@@ -17,6 +27,14 @@ export class PrDetailsWebviewProvider {
         localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
       },
     );
+
+    // Store the panel in our map
+    this.activePanels.set(pullRequest.id, panel);
+
+    // Remove from map when panel is disposed
+    panel.onDidDispose(() => {
+      this.activePanels.delete(pullRequest.id);
+    });
 
     panel.webview.html = this.getWebviewContent(panel.webview, extensionUri, pullRequest);
 
