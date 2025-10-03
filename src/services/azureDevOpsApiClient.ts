@@ -53,6 +53,37 @@ export interface AzureDevOpsApiConfig {
   pat: string;
 }
 
+export interface AzureDevOpsPullRequest {
+  pullRequestId: number;
+  title: string;
+  description: string;
+  sourceRefName: string;
+  targetRefName: string;
+  status: string;
+  createdBy: {
+    displayName: string;
+    uniqueName: string;
+    id: string;
+  };
+  creationDate: string;
+  closedDate?: string;
+  isDraft: boolean;
+  reviewers: Array<{
+    displayName: string;
+    uniqueName: string;
+    id: string;
+    vote: number;
+  }>;
+  repository: {
+    id: string;
+    name: string;
+    project: {
+      id: string;
+      name: string;
+    };
+  };
+}
+
 export class AzureDevOpsApiClient {
   private baseUrl: string;
   private organization: string;
@@ -152,10 +183,40 @@ export class AzureDevOpsApiClient {
 
   /**
    * Fetches pull requests for a specific repository
+   * @param project - The project name
+   * @param repository - The repository name or ID
+   * @param creatorId - Optional: Filter by creator ID
+   * @param reviewerId - Optional: Filter by reviewer ID
+   * @param status - Optional: Filter by status (active, completed, abandoned, all)
    */
-  async getPullRequests(project: string, repository: string): Promise<any[]> {
+  async getPullRequests(
+    project: string,
+    repository: string,
+    options?: {
+      creatorId?: string;
+      reviewerId?: string;
+      status?: 'active' | 'completed' | 'abandoned' | 'all';
+    },
+  ): Promise<AzureDevOpsPullRequest[]> {
     try {
-      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repository}/pullrequests?api-version=7.1-preview.1`;
+      let url = `${this.baseUrl}/${project}/_apis/git/repositories/${repository}/pullrequests?api-version=7.1-preview.1`;
+
+      // Add query parameters
+      const params = new URLSearchParams();
+      if (options?.creatorId) {
+        params.append('searchCriteria.creatorId', options.creatorId);
+      }
+      if (options?.reviewerId) {
+        params.append('searchCriteria.reviewerId', options.reviewerId);
+      }
+      if (options?.status) {
+        params.append('searchCriteria.status', options.status);
+      }
+
+      const queryString = params.toString();
+      if (queryString) {
+        url += `&${queryString}`;
+      }
 
       const response = await fetch(url, {
         method: 'GET',
@@ -169,7 +230,7 @@ export class AzureDevOpsApiClient {
         );
       }
 
-      const data = (await response.json()) as { value?: any[] };
+      const data = (await response.json()) as { value?: AzureDevOpsPullRequest[] };
       return data.value || [];
     } catch (error) {
       if (error instanceof Error) {
@@ -177,5 +238,33 @@ export class AzureDevOpsApiClient {
       }
       throw error;
     }
+  }
+
+  /**
+   * Fetches PRs created by the authenticated user
+   */
+  async getPullRequestsCreatedByMe(
+    project: string,
+    repository: string,
+  ): Promise<AzureDevOpsPullRequest[]> {
+    const profile = await this.getCurrentUserProfile();
+    return this.getPullRequests(project, repository, {
+      creatorId: profile.id,
+      status: 'all',
+    });
+  }
+
+  /**
+   * Fetches PRs where the authenticated user is a reviewer
+   */
+  async getPullRequestsForMyReview(
+    project: string,
+    repository: string,
+  ): Promise<AzureDevOpsPullRequest[]> {
+    const profile = await this.getCurrentUserProfile();
+    return this.getPullRequests(project, repository, {
+      reviewerId: profile.id,
+      status: 'active',
+    });
   }
 }

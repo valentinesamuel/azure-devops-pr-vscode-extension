@@ -46,6 +46,56 @@ export async function activate(context: vscode.ExtensionContext) {
     },
   );
 
+  // Register filter command for pull requests
+  const filterCommand = vscode.commands.registerCommand(
+    'azureDevOpsPr.filterPullRequests',
+    async () => {
+      const currentFilter = pullRequestProvider.getFilter();
+
+      // Create quick pick items with checkboxes
+      const items: vscode.QuickPickItem[] = [
+        {
+          label: '$(check) Active PRs',
+          picked: currentFilter.active,
+          description: 'Show active pull requests (non-draft)',
+        },
+        {
+          label: '$(check) Draft PRs',
+          picked: currentFilter.draft,
+          description: 'Show draft pull requests',
+        },
+        {
+          label: '$(check) Completed PRs',
+          picked: currentFilter.completed,
+          description: 'Show completed pull requests',
+        },
+        {
+          label: '$(check) Abandoned PRs',
+          picked: currentFilter.abandoned,
+          description: 'Show abandoned pull requests',
+        },
+      ];
+
+      const result = await vscode.window.showQuickPick(items, {
+        canPickMany: true,
+        title: 'Filter Pull Requests',
+        placeHolder: 'Select which PR types to show',
+      });
+
+      if (result) {
+        // Update filter based on selected items
+        const newFilter = {
+          active: result.some((item) => item.label.includes('Active PRs')),
+          draft: result.some((item) => item.label.includes('Draft PRs')),
+          completed: result.some((item) => item.label.includes('Completed PRs')),
+          abandoned: result.some((item) => item.label.includes('Abandoned PRs')),
+        };
+
+        pullRequestProvider.setFilter(newFilter);
+      }
+    },
+  );
+
   // Register command to open PR details
   const openPrDetailsCommand = vscode.commands.registerCommand(
     'azureDevOpsPr.openPrDetails',
@@ -83,6 +133,7 @@ export async function activate(context: vscode.ExtensionContext) {
     signInCommand,
     signOutCommand,
     refreshCommand,
+    filterCommand,
     openPrDetailsCommand,
   );
 }

@@ -31,10 +31,20 @@
         "command": "azureDevOpsPr.signOut",
         "title": "Sign Out from Azure DevOps",
         "icon": "$(sign-out)"
+      },
+      {
+        "command": "azureDevOpsPr.filterPullRequests",
+        "title": "Filter Pull Requests",
+        "icon": "$(filter)"
       }
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "azureDevOpsPr.filterPullRequests",
+          "when": "view == pullRequests",
+          "group": "navigation"
+        },
         {
           "command": "azureDevOpsPr.refreshPullRequests",
           "when": "view == pullRequests",

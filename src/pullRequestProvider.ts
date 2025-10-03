@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { AuthService } from './services/authService';
 import { GitService, AzureDevOpsRepository } from './services/gitService';
+import { AzureDevOpsApiClient } from './services/azureDevOpsApiClient';
+import { PrTransformer } from './services/prTransformer';
 
 export interface PullRequest {
   id: number;
@@ -105,6 +107,13 @@ export class RepositoryItem extends vscode.TreeItem {
 
 type TreeElement = RepositoryItem | PullRequestCategoryItem | PullRequestItem | SignInItem;
 
+export interface PrStatusFilter {
+  active: boolean;
+  draft: boolean;
+  completed: boolean;
+  abandoned: boolean;
+}
+
 export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement> {
   private _onDidChangeTreeData: vscode.EventEmitter<TreeElement | undefined | null | void> =
     new vscode.EventEmitter<TreeElement | undefined | null | void>();
@@ -112,9 +121,30 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
     this._onDidChangeTreeData.event;
 
   private gitService: GitService;
+  private statusFilter: PrStatusFilter = {
+    active: true,
+    draft: true,
+    completed: false,
+    abandoned: false,
+  };
 
   constructor(private authService: AuthService) {
     this.gitService = new GitService();
+  }
+
+  /**
+   * Gets the current filter settings
+   */
+  getFilter(): PrStatusFilter {
+    return { ...this.statusFilter };
+  }
+
+  /**
+   * Updates the filter settings
+   */
+  setFilter(filter: PrStatusFilter): void {
+    this.statusFilter = filter;
+    this.refresh();
   }
 
   /**
@@ -123,6 +153,28 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
   private getCurrentUserEmail(): string {
     const userProfile = this.authService.getUserProfileService().getStoredProfile();
     return userProfile?.emailAddress || 'unknown@user.com';
+  }
+
+  /**
+   * Filters PRs based on current filter settings
+   */
+  private filterPullRequests(prs: PullRequest[]): PullRequest[] {
+    return prs.filter((pr) => {
+      // Filter by status
+      if (pr.status === 'Active' && pr.isDraft) {
+        return this.statusFilter.draft;
+      }
+      if (pr.status === 'Active' && !pr.isDraft) {
+        return this.statusFilter.active;
+      }
+      if (pr.status === 'Completed') {
+        return this.statusFilter.completed;
+      }
+      if (pr.status === 'Abandoned') {
+        return this.statusFilter.abandoned;
+      }
+      return true;
+    });
   }
 
   refresh(): void {
@@ -157,8 +209,14 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
       );
     } else if (element instanceof RepositoryItem) {
       // Return categories for this repository
-      const createdByMe = this.getPullRequestsCreatedByMe(element.repository);
-      const waitingForMyReview = this.getPullRequestsWaitingForMyReview(element.repository);
+      const createdByMeRaw = await this.getPullRequestsCreatedByMe(element.repository);
+      const waitingForMyReviewRaw = await this.getPullRequestsWaitingForMyReview(
+        element.repository,
+      );
+
+      // Apply filters
+      const createdByMe = this.filterPullRequests(createdByMeRaw);
+      const waitingForMyReview = this.filterPullRequests(waitingForMyReviewRaw);
 
       return [
         new PullRequestCategoryItem(
@@ -272,26 +330,68 @@ export class PullRequestProvider implements vscode.TreeDataProvider<TreeElement>
     ];
   }
 
-  private getPullRequestsCreatedByMe(repository: AzureDevOpsRepository): PullRequest[] {
-    // In a real implementation, this would fetch PRs from Azure DevOps API
-    // filtered by the specific repository
-    const currentUserEmail = this.getCurrentUserEmail();
-    return this.getDummyPullRequests()
-      .filter((pr) => pr.author === currentUserEmail)
-      .map((pr) => ({ ...pr, repository }));
+  private async getPullRequestsCreatedByMe(
+    repository: AzureDevOpsRepository,
+  ): Promise<PullRequest[]> {
+    try {
+      const pat = await this.authService.getPersonalAccessToken();
+      if (!pat) {
+        return [];
+      }
+
+      const apiClient = new AzureDevOpsApiClient({
+        organization: repository.organization,
+        pat,
+      });
+
+      const azurePrs = await apiClient.getPullRequestsCreatedByMe(
+        repository.project,
+        repository.repository,
+      );
+
+      return PrTransformer.transformList(azurePrs, repository);
+    } catch (error) {
+      console.error('Error fetching PRs created by me:', error);
+      // Fall back to dummy data on error
+      const currentUserEmail = this.getCurrentUserEmail();
+      return this.getDummyPullRequests()
+        .filter((pr) => pr.author === currentUserEmail)
+        .map((pr) => ({ ...pr, repository }));
+    }
   }
 
-  private getPullRequestsWaitingForMyReview(repository: AzureDevOpsRepository): PullRequest[] {
-    // In a real implementation, this would fetch PRs from Azure DevOps API
-    // filtered by the specific repository
-    const currentUserEmail = this.getCurrentUserEmail();
-    return this.getDummyPullRequests()
-      .filter(
-        (pr) =>
-          pr.author !== currentUserEmail &&
-          pr.reviewers.includes(currentUserEmail) &&
-          pr.status === 'Active',
-      )
-      .map((pr) => ({ ...pr, repository }));
+  private async getPullRequestsWaitingForMyReview(
+    repository: AzureDevOpsRepository,
+  ): Promise<PullRequest[]> {
+    try {
+      const pat = await this.authService.getPersonalAccessToken();
+      if (!pat) {
+        return [];
+      }
+
+      const apiClient = new AzureDevOpsApiClient({
+        organization: repository.organization,
+        pat,
+      });
+
+      const azurePrs = await apiClient.getPullRequestsForMyReview(
+        repository.project,
+        repository.repository,
+      );
+
+      return PrTransformer.transformList(azurePrs, repository);
+    } catch (error) {
+      console.error('Error fetching PRs for my review:', error);
+      // Fall back to dummy data on error
+      const currentUserEmail = this.getCurrentUserEmail();
+      return this.getDummyPullRequests()
+        .filter(
+          (pr) =>
+            pr.author !== currentUserEmail &&
+            pr.reviewers.includes(currentUserEmail) &&
+            pr.status === 'Active',
+        )
+        .map((pr) => ({ ...pr, repository }));
+    }
   }
 }
