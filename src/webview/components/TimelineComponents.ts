@@ -43,13 +43,32 @@ export class TimelineComponents {
 
     return `
       <div class="mb-8">
-        <div class="flex items-center space-x-4 mb-6">
-          ${avatarHtml}
-          <input
-            type="text"
-            placeholder="Add a comment..."
-            class="flex-1 bg-vscode-input-bg border border-vscode-input-border rounded-lg px-4 py-3 text-sm text-vscode-fg placeholder-vscode-fg opacity-60 focus:outline-none focus:border-vscode-link"
-          />
+        <div class="flex flex-col space-y-3">
+          <div class="flex items-start space-x-4">
+            ${avatarHtml}
+            <textarea
+              id="newCommentInput"
+              placeholder="Add a comment..."
+              rows="3"
+              class="flex-1 bg-vscode-input-bg border border-vscode-input-border rounded-lg px-4 py-3 text-sm text-vscode-fg placeholder-vscode-fg opacity-60 focus:outline-none focus:border-vscode-link resize-none"
+            ></textarea>
+          </div>
+          <div class="flex justify-end space-x-2 ml-12">
+            <button
+              id="cancelCommentBtn"
+              class="px-4 py-2 text-sm text-vscode-fg opacity-60 hover:opacity-100 rounded transition-opacity"
+              onclick="cancelComment()"
+            >
+              Cancel
+            </button>
+            <button
+              id="submitCommentBtn"
+              class="px-4 py-2 text-sm bg-vscode-button-bg text-vscode-button-fg hover:bg-vscode-button-hover rounded transition-colors"
+              onclick="submitComment()"
+            >
+              Comment
+            </button>
+          </div>
         </div>
       </div>`;
   }

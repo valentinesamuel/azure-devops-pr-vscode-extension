@@ -121,7 +121,7 @@ export class PrDetailsWebviewProvider {
       this.activePanels.delete(pullRequest.id);
     });
 
-    // Fetch threads from Azure DevOps
+    // Fetch threads and statuses from Azure DevOps
     let threads: CommentThread[] = [];
     let userProfile = authService.getUserProfileService().getStoredProfile();
     try {
@@ -138,6 +138,14 @@ export class PrDetailsWebviewProvider {
             pullRequest.repository.repository,
             pullRequest.id,
           );
+
+          // Fetch PR statuses
+          const statuses = await apiClient.getPullRequestStatuses(
+            pullRequest.repository.project,
+            pullRequest.repository.repository,
+            pullRequest.id,
+          );
+          pullRequest.statuses = statuses;
 
           // Add a synthetic "PR created" thread since Azure DevOps doesn't always include it in threads
           // Get the current user profile to see if they are the creator
@@ -200,7 +208,7 @@ export class PrDetailsWebviewProvider {
 
     // Handle messages from the webview
     panel.webview.onDidReceiveMessage(
-      (message) => {
+      async (message) => {
         switch (message.command) {
           case 'openInBrowser':
             vscode.env.openExternal(
@@ -220,6 +228,13 @@ export class PrDetailsWebviewProvider {
           case 'retryCheck':
             vscode.window.showInformationMessage(`Retrying check: ${message.checkName}`);
             // In a real implementation, you would retry the check in Azure DevOps
+            break;
+          case 'addComment':
+            vscode.window.showInformationMessage(
+              `Adding comment to PR #${message.prId}: "${message.text}"`,
+            );
+            // TODO: Implement actual comment posting to Azure DevOps API
+            // For now, just show a placeholder message
             break;
         }
       },

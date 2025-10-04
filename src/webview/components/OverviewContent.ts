@@ -7,15 +7,15 @@ import { ThreadComponents } from './ThreadComponents';
 
 export class OverviewContent {
   static renderDescription(pullRequest: PullRequest): string {
+    const description = pullRequest.description || 'No description provided';
+    // Convert newlines to <br> tags for proper rendering
+    const formattedDescription = description.replace(/\n/g, '<br>');
+
     return `
       <div class="mb-8">
         <h3 class="text-lg font-medium text-vscode-fg mb-4">Description</h3>
-        <div class="bg-vscode-input-bg rounded-lg border border-vscode-input-border p-6 text-sm text-vscode-fg opacity-70">
-          ${pullRequest.description || 'Merged PR 21362: feat: add endpoint to update bees order invoice'}
-          <ul class="list-disc list-inside mt-4 ml-4 space-y-1">
-            <li>chore: remove unused vars</li>
-            <li>feat: add endpoint to update bees order invoice</li>
-          </ul>
+        <div class="bg-vscode-input-bg rounded-lg border border-vscode-input-border p-6 text-sm text-vscode-fg opacity-70 whitespace-pre-wrap">
+          ${formattedDescription}
         </div>
       </div>`;
   }
@@ -37,8 +37,8 @@ export class OverviewContent {
     return `
       <div class="flex-1 bg-vscode-bg rounded-lg border border-vscode-border content-card overflow-y-auto p-8">
         ${StatusComponents.renderAbandonmentBanner(pullRequest)}
-        ${StatusComponents.renderMergeInfo()}
-        ${StatusComponents.renderChecksSection()}
+        ${StatusComponents.renderMergeInfo(pullRequest)}
+        ${StatusComponents.renderChecksSection(pullRequest.statuses)}
         ${this.renderDescription(pullRequest)}
         ${this.renderShowEverythingDropdown()}
         ${TimelineComponents.renderCommentInput(userProfile)}

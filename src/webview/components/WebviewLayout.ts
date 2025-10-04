@@ -100,6 +100,31 @@ ${WebviewStyles.getHtmlHead()}
         fileNameElement.textContent = fileName;
       }
     }
+
+    // Comment Functions
+    function submitComment() {
+      const input = document.getElementById('newCommentInput');
+      const commentText = input.value.trim();
+
+      if (!commentText) {
+        return;
+      }
+
+      vscode.postMessage({
+        command: 'addComment',
+        text: commentText,
+        prId: ${pullRequest.id}
+      });
+
+      // Clear the input
+      input.value = '';
+    }
+
+    function cancelComment() {
+      const input = document.getElementById('newCommentInput');
+      input.value = '';
+      input.blur();
+    }
   </script>
 </body>
 </html>`;

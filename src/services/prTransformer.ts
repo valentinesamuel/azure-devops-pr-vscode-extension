@@ -39,6 +39,12 @@ export class PrTransformer {
       })),
       description: azurePr.description || undefined,
       repository,
+      closedDate: azurePr.closedDate ? new Date(azurePr.closedDate) : undefined,
+      closedBy: azurePr.closedBy?.displayName,
+      mergeCommitId: azurePr.lastMergeCommit?.commitId?.substring(0, 7), // Short hash
+      mergeCommitDate: azurePr.lastMergeCommit?.author?.date
+        ? new Date(azurePr.lastMergeCommit.author.date)
+        : undefined,
     };
   }
 

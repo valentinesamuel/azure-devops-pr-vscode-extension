@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { AuthService } from './services/authService';
 import { GitService, AzureDevOpsRepository } from './services/gitService';
-import { AzureDevOpsApiClient } from './services/azureDevOpsApiClient';
+import { AzureDevOpsApiClient, PullRequestStatus } from './services/azureDevOpsApiClient';
 import { PrTransformer } from './services/prTransformer';
 
 export interface Reviewer {
@@ -34,6 +34,11 @@ export interface PullRequest {
   reviewersDetailed?: Reviewer[]; // Detailed reviewer information
   description?: string;
   repository?: AzureDevOpsRepository; // Link PR to its repository
+  closedDate?: Date;
+  closedBy?: string; // Display name of who closed/merged the PR
+  mergeCommitId?: string; // Short commit hash
+  mergeCommitDate?: Date;
+  statuses?: PullRequestStatus[]; // PR checks and policies
 }
 
 export class SignInItem extends vscode.TreeItem {

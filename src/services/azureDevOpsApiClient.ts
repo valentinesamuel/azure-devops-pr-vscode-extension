@@ -67,6 +67,22 @@ export interface AzureDevOpsPullRequest {
   };
   creationDate: string;
   closedDate?: string;
+  closedBy?: {
+    displayName: string;
+    uniqueName: string;
+    id: string;
+  };
+  lastMergeCommit?: {
+    commitId: string;
+    author?: {
+      name: string;
+      email: string;
+      date: string;
+    };
+  };
+  lastMergeSourceCommit?: {
+    commitId: string;
+  };
   isDraft: boolean;
   reviewers: Array<{
     displayName: string;
@@ -111,6 +127,19 @@ export interface IdentityRefWithVote extends CommentIdentity {
     uniqueName: string;
     imageUrl?: string;
   }>;
+}
+
+export interface PullRequestStatus {
+  id: number;
+  state: 'pending' | 'succeeded' | 'failed' | 'error' | 'notSet' | 'notApplicable';
+  description: string;
+  context: {
+    name: string;
+    genre: string;
+  };
+  targetUrl?: string;
+  creationDate: string;
+  updatedDate: string;
 }
 
 export interface Comment {
@@ -394,6 +423,39 @@ export class AzureDevOpsApiClient {
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error fetching PR threads: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches all statuses (checks/policies) for a pull request
+   */
+  async getPullRequestStatuses(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+  ): Promise<PullRequestStatus[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/statuses?api-version=7.1-preview.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch PR statuses: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { value?: PullRequestStatus[] };
+      return data.value || [];
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching PR statuses: ${error.message}`);
       }
       throw error;
     }
