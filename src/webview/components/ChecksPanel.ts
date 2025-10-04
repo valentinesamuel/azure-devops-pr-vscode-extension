@@ -103,26 +103,34 @@ export class ChecksPanel {
       const toggleChecksBtn = document.getElementById('toggleChecksPanel');
       const closeChecksBtn = document.getElementById('closeChecksPanel');
 
-      // Add transition classes after page load to prevent initial animation glitch
-      setTimeout(() => {
-        checksPanel.classList.add('transition-transform', 'duration-300', 'ease-in-out');
-      }, 100);
+      if (checksPanel && panelOverlay) {
+        // Add transition classes after page load to prevent initial animation glitch
+        setTimeout(() => {
+          checksPanel.classList.add('transition-transform', 'duration-300', 'ease-in-out');
+        }, 100);
 
-      function openChecksPanel() {
-        checksPanel.classList.remove('translate-x-full');
-        panelOverlay.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+        function openChecksPanel() {
+          checksPanel.classList.remove('translate-x-full');
+          panelOverlay.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeChecksPanel() {
+          checksPanel.classList.add('translate-x-full');
+          panelOverlay.classList.add('hidden');
+          document.body.style.overflow = 'auto';
+        }
+
+        if (toggleChecksBtn) {
+          toggleChecksBtn.addEventListener('click', openChecksPanel);
+        }
+        if (closeChecksBtn) {
+          closeChecksBtn.addEventListener('click', closeChecksPanel);
+        }
+        if (panelOverlay) {
+          panelOverlay.addEventListener('click', closeChecksPanel);
+        }
       }
-
-      function closeChecksPanel() {
-        checksPanel.classList.add('translate-x-full');
-        panelOverlay.classList.add('hidden');
-        document.body.style.overflow = 'auto';
-      }
-
-      toggleChecksBtn.addEventListener('click', openChecksPanel);
-      closeChecksBtn.addEventListener('click', closeChecksPanel);
-      panelOverlay.addEventListener('click', closeChecksPanel);
 
       // Handle check skip actions
       document.querySelectorAll('[title="Skip this check"]').forEach(btn => {

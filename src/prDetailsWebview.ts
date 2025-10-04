@@ -18,9 +18,6 @@ export class PrDetailsWebviewProvider {
     reviewers: Reviewer[],
     threads: CommentThread[],
   ): Reviewer[] {
-    console.log('🔍 enrichReviewersWithTeamMembers - Starting enrichment');
-    console.log('🔍 Reviewers:', reviewers);
-
     // Create a map of team ID to members who voted on behalf of that team
     // The data comes from the reviewer's votedFor array
     const teamMemberMap = new Map<
@@ -60,29 +57,18 @@ export class PrDetailsWebviewProvider {
       }
     });
 
-    console.log('🔍 Team member map:', teamMemberMap);
-
     // Second pass: enrich team reviewers with member information
     const enrichedReviewers = reviewers.map((reviewer) => {
-      console.log('🔍 Processing reviewer:', {
-        displayName: reviewer.displayName,
-        id: reviewer.id,
-        isContainer: reviewer.isContainer,
-        hasMembers: teamMemberMap.has(reviewer.id),
-      });
-
       if (reviewer.isContainer && teamMemberMap.has(reviewer.id)) {
         const enriched = {
           ...reviewer,
           votedFor: teamMemberMap.get(reviewer.id),
         };
-        console.log('🔍 Enriched team reviewer:', enriched);
         return enriched;
       }
       return reviewer;
     });
 
-    console.log('🔍 Final enriched reviewers:', enrichedReviewers);
     return enrichedReviewers;
   }
 
