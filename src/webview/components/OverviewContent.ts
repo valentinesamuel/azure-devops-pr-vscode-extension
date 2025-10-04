@@ -2,6 +2,8 @@ import { PullRequest } from '../../pullRequestProvider';
 import { StatusComponents } from './StatusComponents';
 import { TimelineComponents } from './TimelineComponents';
 import { SidebarComponents } from './SidebarComponents';
+import { CommentThread, AzureDevOpsProfile } from '../../services/azureDevOpsApiClient';
+import { ThreadComponents } from './ThreadComponents';
 
 export class OverviewContent {
   static renderDescription(pullRequest: PullRequest): string {
@@ -27,7 +29,11 @@ export class OverviewContent {
       </div>`;
   }
 
-  static renderLeftColumn(pullRequest: PullRequest): string {
+  static renderLeftColumn(
+    pullRequest: PullRequest,
+    threads: CommentThread[],
+    userProfile?: AzureDevOpsProfile,
+  ): string {
     return `
       <div class="flex-1 bg-vscode-bg rounded-lg border border-vscode-border content-card overflow-y-auto p-8">
         ${StatusComponents.renderAbandonmentBanner(pullRequest)}
@@ -35,16 +41,20 @@ export class OverviewContent {
         ${StatusComponents.renderChecksSection()}
         ${this.renderDescription(pullRequest)}
         ${this.renderShowEverythingDropdown()}
-        ${TimelineComponents.renderCommentInput()}
-        ${TimelineComponents.renderTimelineSection(pullRequest)}
+        ${TimelineComponents.renderCommentInput(userProfile)}
+        ${ThreadComponents.renderAllThreads(threads)}
       </div>`;
   }
 
-  static render(pullRequest: PullRequest): string {
+  static render(
+    pullRequest: PullRequest,
+    threads: CommentThread[] = [],
+    userProfile?: AzureDevOpsProfile,
+  ): string {
     return `
       <div id="overviewContent" class="tab-content flex gap-6 h-full">
         <!-- Left Column - Overview Content -->
-        ${this.renderLeftColumn(pullRequest)}
+        ${this.renderLeftColumn(pullRequest, threads, userProfile)}
 
         <!-- Right Column - Sidebar -->
         ${SidebarComponents.renderSidebar()}

@@ -5,9 +5,15 @@ import { TabNavigation } from './TabNavigation';
 import { OverviewContent } from './OverviewContent';
 import { TabContent } from './TabContent';
 import { ChecksPanel } from './ChecksPanel';
+import { CommentThread, AzureDevOpsProfile } from '../../services/azureDevOpsApiClient';
+import { ThreadComponents } from './ThreadComponents';
 
 export class WebviewLayout {
-  static render(pullRequest: PullRequest): string {
+  static render(
+    pullRequest: PullRequest,
+    threads: CommentThread[] = [],
+    userProfile?: AzureDevOpsProfile,
+  ): string {
     return `<!DOCTYPE html>
 <html lang="en">
 ${WebviewStyles.getHtmlHead()}
@@ -23,7 +29,7 @@ ${WebviewStyles.getHtmlHead()}
     <!-- Content Area - Dynamic Layout Based on Tab -->
     <div class="flex-1 overflow-hidden">
       <!-- Overview Tab Content - Two Columns -->
-      ${OverviewContent.render(pullRequest)}
+      ${OverviewContent.render(pullRequest, threads, userProfile)}
 
       <!-- Files Tab Content - Full Width -->
       ${TabContent.renderFilesContent()}

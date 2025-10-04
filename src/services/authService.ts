@@ -70,9 +70,9 @@ export class AuthService {
             vscode.window.showInformationMessage(
               `Successfully authenticated as ${profile.displayName}! Organization and project information detected from git remotes.`,
             );
-            console.log('🚀🚀🚀 AZDO Authentication successful 🚀🚀🚀');
-            console.log('=========================');
-            console.table(profile);
+            // console.log('🚀🚀🚀 AZDO Authentication successful 🚀🚀🚀');
+            // console.log('=========================');
+            // console.table(profile);
           } catch (error) {
             vscode.window.showWarningMessage(
               `Authentication successful but failed to fetch profile: ${error instanceof Error ? error.message : 'Unknown error'}`,

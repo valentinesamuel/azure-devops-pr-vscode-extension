@@ -17,8 +17,6 @@ export class UserProfileService {
       // Store the profile
       await this.storeProfile(profile);
 
-      console.log('📋 User Profile Fetched:', profile);
-
       return profile;
     } catch (error) {
       if (error instanceof Error) {

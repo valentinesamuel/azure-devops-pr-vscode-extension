@@ -3,13 +3,49 @@ import { CommentGenerator, CommentData } from '../utils/commentGenerator';
 import { PullRequest } from '../../pullRequestProvider';
 
 export class TimelineComponents {
-  static renderCommentInput(): string {
+  /**
+   * Cleans a display name by removing Azure DevOps prefixes
+   */
+  private static cleanDisplayName(displayName: string): string {
+    // Remove any prefix in brackets (e.g., "[AFR_WEB_Distributor Management System (DMS)]\\Kuja Leads")
+    if (displayName.includes(']\\')) {
+      return displayName.split(']\\')[1]?.trim() || displayName;
+    }
+    return displayName;
+  }
+
+  private static getInitials(displayName: string): string {
+    const cleanName = this.cleanDisplayName(displayName);
+    const parts = cleanName.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return cleanName.substring(0, 2).toUpperCase();
+  }
+
+  static renderCommentInput(userProfile?: { displayName?: string; imageUrl?: string }): string {
+    console.log(userProfile);
+    const displayName = userProfile?.displayName || 'VS Code';
+    const initials = this.getInitials(displayName);
+    const avatarHtml = userProfile?.imageUrl
+      ? `<img
+          src="${userProfile.imageUrl}"
+          class="w-8 h-8 rounded-full flex-shrink-0"
+          alt="${userProfile.displayName}"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          style="display: block;"
+        />
+        <div class="w-8 h-8 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-sm" style="display: none;">
+          ${initials}
+        </div>`
+      : `<div class="w-8 h-8 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-sm">
+          ${initials}
+        </div>`;
+
     return `
       <div class="mb-8">
         <div class="flex items-center space-x-4 mb-6">
-          <div class="w-8 h-8 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-sm">
-            VS
-          </div>
+          ${avatarHtml}
           <input
             type="text"
             placeholder="Add a comment..."

@@ -1,11 +1,21 @@
 import * as vscode from 'vscode';
 import { PullRequest } from './pullRequestProvider';
 import { WebviewLayout } from './webview/components/WebviewLayout';
+import {
+  AzureDevOpsApiClient,
+  CommentThread,
+  AzureDevOpsProfile,
+} from './services/azureDevOpsApiClient';
+import { AuthService } from './services/authService';
 
 export class PrDetailsWebviewProvider {
   private static activePanels: Map<number, vscode.WebviewPanel> = new Map();
 
-  public static createOrShow(extensionUri: vscode.Uri, pullRequest: PullRequest) {
+  public static async createOrShow(
+    extensionUri: vscode.Uri,
+    pullRequest: PullRequest,
+    authService: AuthService,
+  ) {
     // Check if a panel for this PR already exists
     const existingPanel = this.activePanels.get(pullRequest.id);
     if (existingPanel) {
@@ -36,7 +46,74 @@ export class PrDetailsWebviewProvider {
       this.activePanels.delete(pullRequest.id);
     });
 
-    panel.webview.html = this.getWebviewContent(panel.webview, extensionUri, pullRequest);
+    // Fetch threads from Azure DevOps
+    let threads: CommentThread[] = [];
+    let userProfile = authService.getUserProfileService().getStoredProfile();
+    try {
+      if (pullRequest.repository) {
+        const pat = await authService.getPersonalAccessToken();
+        if (pat) {
+          const apiClient = new AzureDevOpsApiClient({
+            organization: pullRequest.repository.organization,
+            pat,
+          });
+
+          threads = await apiClient.getPullRequestThreads(
+            pullRequest.repository.project,
+            pullRequest.repository.repository,
+            pullRequest.id,
+          );
+
+          // Add a synthetic "PR created" thread since Azure DevOps doesn't always include it in threads
+          // Get the current user profile to see if they are the creator
+          const currentProfile = userProfile;
+          const isCurrentUser = currentProfile?.emailAddress === pullRequest.author;
+
+          // For the creator name, use the stored profile if it's the current user, otherwise extract from email
+          const creatorDisplayName = isCurrentUser
+            ? currentProfile?.displayName || pullRequest.author.split('@')[0]
+            : pullRequest.author.split('@')[0];
+
+          const prCreatedThread: CommentThread = {
+            id: -1, // Negative ID to indicate synthetic
+            publishedDate: pullRequest.createdDate.toISOString(),
+            comments: [
+              {
+                id: -1,
+                author: {
+                  displayName: creatorDisplayName,
+                  id: 'creator',
+                  uniqueName: pullRequest.author,
+                },
+                content: `${creatorDisplayName} created the pull request`,
+                publishedDate: pullRequest.createdDate.toISOString(),
+                commentType: 'system',
+              },
+            ],
+            properties: {
+              CodeReviewThreadType: {
+                $value: 'PullRequestCreated',
+              },
+            },
+          };
+
+          threads.push(prCreatedThread);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch PR threads:', error);
+      vscode.window.showWarningMessage(
+        `Failed to load comments for PR #${pullRequest.id}. Using dummy data.`,
+      );
+    }
+
+    panel.webview.html = this.getWebviewContent(
+      panel.webview,
+      extensionUri,
+      pullRequest,
+      threads,
+      userProfile,
+    );
 
     // Handle messages from the webview
     panel.webview.onDidReceiveMessage(
@@ -72,7 +149,9 @@ export class PrDetailsWebviewProvider {
     webview: vscode.Webview,
     extensionUri: vscode.Uri,
     pullRequest: PullRequest,
+    threads: CommentThread[],
+    userProfile?: AzureDevOpsProfile,
   ): string {
-    return WebviewLayout.render(pullRequest);
+    return WebviewLayout.render(pullRequest, threads, userProfile);
   }
 }

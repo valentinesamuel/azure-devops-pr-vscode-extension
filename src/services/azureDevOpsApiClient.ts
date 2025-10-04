@@ -84,6 +84,88 @@ export interface AzureDevOpsPullRequest {
   };
 }
 
+export interface CommentIdentity {
+  displayName: string;
+  id: string;
+  uniqueName: string;
+  imageUrl?: string;
+}
+
+export interface IdentityRefWithVote extends CommentIdentity {
+  vote?: number; // 10=approved, 5=approved with suggestions, 0=no vote, -5=waiting, -10=rejected
+  isRequired?: boolean;
+}
+
+export interface Comment {
+  id: number;
+  parentCommentId?: number;
+  author?: CommentIdentity;
+  content?: string;
+  publishedDate?: string;
+  lastUpdatedDate?: string;
+  lastContentUpdatedDate?: string;
+  commentType?: string; // 'text', 'system'
+  isDeleted?: boolean;
+}
+
+export interface CommentThread {
+  id: number;
+  publishedDate?: string;
+  lastUpdatedDate?: string;
+  comments?: Comment[];
+  status?: string; // 'active', 'fixed', 'wontFix', 'closed', 'byDesign', 'pending'
+  threadContext?: {
+    filePath?: string;
+    rightFileStart?: {
+      line: number;
+      offset: number;
+    };
+    rightFileEnd?: {
+      line: number;
+      offset: number;
+    };
+  };
+  pullRequestThreadContext?: {
+    filePath?: string;
+    rightFileStart?: {
+      line: number;
+      offset: number;
+    };
+    rightFileEnd?: {
+      line: number;
+      offset: number;
+    };
+  } | null;
+  identities?: {
+    [key: string]: IdentityRefWithVote;
+  };
+  properties?: {
+    CodeReviewThreadType?: {
+      $value?: string; // 'VoteUpdate', 'ReviewerAdd', 'PullRequestCreated', etc.
+    };
+    CodeReviewReviewersUpdatedNumAdded?: {
+      $value?: string;
+    };
+    CodeReviewReviewersUpdatedNumDeclined?: {
+      $value?: string;
+    };
+    CodeReviewReviewersUpdatedNumChanged?: {
+      $value?: string;
+    };
+    CodeReviewVoteResult?: {
+      $value?: string; // '10' for approved, '5' for approved with suggestions, '0' for no vote, '-5' for waiting, '-10' for rejected
+    };
+    CodeReviewVotedByIdentity?: {
+      $value?: string; // GUID of the identity who voted
+    };
+    CodeReviewVotedByInitiatorIdentity?: {
+      $value?: string; // GUID for team approvals
+    };
+    [key: string]: any;
+  };
+  isDeleted?: boolean;
+}
+
 export class AzureDevOpsApiClient {
   private baseUrl: string;
   private organization: string;
@@ -115,13 +197,12 @@ export class AzureDevOpsApiClient {
       });
 
       if (!response.ok) {
-        console.log(await response.json());
         const errorText = await response.text();
         throw new Error(`Failed to fetch connection data`);
       }
 
       const connectionData = (await response.json()) as ConnectionData;
-      console.log(connectionData);
+
       return connectionData;
     } catch (error) {
       if (error instanceof Error) {
@@ -266,5 +347,38 @@ export class AzureDevOpsApiClient {
       reviewerId: profile.id,
       status: 'active',
     });
+  }
+
+  /**
+   * Fetches all threads (comments) for a pull request
+   */
+  async getPullRequestThreads(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+  ): Promise<CommentThread[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/threads?api-version=7.1-preview.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch PR threads: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { value?: CommentThread[] };
+      return data.value || [];
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching PR threads: ${error.message}`);
+      }
+      throw error;
+    }
   }
 }

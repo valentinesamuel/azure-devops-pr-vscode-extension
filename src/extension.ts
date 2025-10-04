@@ -99,8 +99,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register command to open PR details
   const openPrDetailsCommand = vscode.commands.registerCommand(
     'azureDevOpsPr.openPrDetails',
-    (pullRequest: PullRequest) => {
-      PrDetailsWebviewProvider.createOrShow(context.extensionUri, pullRequest);
+    async (pullRequest: PullRequest) => {
+      await PrDetailsWebviewProvider.createOrShow(context.extensionUri, pullRequest, authService);
     },
   );
 
