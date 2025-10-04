@@ -220,7 +220,7 @@ export class SidebarComponents {
 
   static renderSidebar(reviewers?: Reviewer[]): string {
     return `
-      <div class="w-80 bg-vscode-bg rounded-lg border border-vscode-border sidebar-card flex flex-col overflow-hidden">
+      <div class="w-96 bg-vscode-bg rounded-lg border border-vscode-border sidebar-card flex flex-col overflow-hidden">
         <div class="p-6 overflow-y-auto flex-1">
           ${this.renderReviewersSection(reviewers)}
           ${this.renderTagsSection()}
