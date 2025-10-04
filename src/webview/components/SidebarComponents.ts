@@ -130,15 +130,15 @@ export class SidebarComponents {
         </div>`;
 
     return `
-      <div class="flex items-center space-x-3 p-3 rounded-lg border border-vscode-border bg-vscode-input-bg opacity-30">
+      <div class="flex items-center space-x-3 p-3 rounded-lg border border-vscode-input-border bg-vscode-input-bg">
         ${avatarHtml}
         <div class="flex-1 min-w-0">
-          <div class="text-sm text-vscode-fg truncate">${cleanName}</div>
-          <div class="text-xs ${voteStatus.color}">${statusText}</div>
+          <div class="text-sm text-vscode-fg font-medium truncate">${cleanName}</div>
+          <div class="text-xs ${voteStatus.color} font-medium">${statusText}</div>
         </div>
         ${
           voteStatus.icon
-            ? `<div class="w-4 h-4 ${voteStatus.color === 'text-vscode-success' ? 'bg-vscode-success' : voteStatus.color === 'text-vscode-error' ? 'bg-vscode-error' : 'bg-vscode-warning'} rounded-full flex items-center justify-center text-vscode-fg flex-shrink-0">
+            ? `<div class="w-4 h-4 ${voteStatus.color === 'text-vscode-success' ? 'bg-vscode-success' : voteStatus.color === 'text-vscode-error' ? 'bg-vscode-error' : 'bg-vscode-warning'} rounded-full flex items-center justify-center text-white flex-shrink-0">
               ${voteStatus.icon}
             </div>`
             : ''
@@ -151,11 +151,11 @@ export class SidebarComponents {
       return `
         <div class="mb-8">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-medium text-vscode-fg">Reviewers</h3>
-            <button class="text-vscode-link text-sm hover:underline">Add</button>
+            <h3 class="text-sm font-semibold text-vscode-fg">Reviewers</h3>
+            <button class="text-vscode-link text-sm hover:underline font-medium">Add</button>
           </div>
-          <div class="p-4 rounded-lg border border-vscode-border bg-vscode-input-bg opacity-30">
-            <div class="text-sm text-vscode-fg opacity-60">No reviewers</div>
+          <div class="p-4 rounded-lg border border-vscode-input-border bg-vscode-input-bg">
+            <div class="text-sm text-vscode-fg">No reviewers</div>
           </div>
         </div>`;
     }
@@ -166,15 +166,15 @@ export class SidebarComponents {
     return `
       <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-medium text-vscode-fg">Reviewers</h3>
-          <button class="text-vscode-link text-sm hover:underline">Add</button>
+          <h3 class="text-sm font-semibold text-vscode-fg">Reviewers</h3>
+          <button class="text-vscode-link text-sm hover:underline font-medium">Add</button>
         </div>
 
         <div class="space-y-4">
           ${
             requiredReviewers.length > 0
               ? `
-            <div class="text-xs text-vscode-fg opacity-60 font-medium uppercase tracking-wide">Required</div>
+            <div class="text-xs text-vscode-fg font-semibold uppercase tracking-wide">Required</div>
             ${requiredReviewers.map((r) => this.renderReviewer(r)).join('')}
           `
               : ''
@@ -183,7 +183,7 @@ export class SidebarComponents {
           ${
             optionalReviewers.length > 0
               ? `
-            <div class="text-xs text-vscode-fg opacity-60 font-medium uppercase tracking-wide ${requiredReviewers.length > 0 ? 'mt-6' : ''}">Optional</div>
+            <div class="text-xs text-vscode-fg font-semibold uppercase tracking-wide ${requiredReviewers.length > 0 ? 'mt-6' : ''}">Optional</div>
             ${optionalReviewers.map((r) => this.renderReviewer(r)).join('')}
           `
               : ''
@@ -196,11 +196,11 @@ export class SidebarComponents {
     return `
       <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-medium text-vscode-fg">Tags</h3>
-          <button class="text-vscode-fg opacity-60 hover:text-vscode-fg text-lg">+</button>
+          <h3 class="text-sm font-semibold text-vscode-fg">Tags</h3>
+          <button class="text-vscode-link hover:underline text-lg font-medium">+</button>
         </div>
-        <div class="p-4 rounded-lg border border-vscode-border bg-vscode-input-bg opacity-30">
-          <div class="text-sm text-vscode-fg opacity-60">No tags</div>
+        <div class="p-4 rounded-lg border border-vscode-input-border bg-vscode-input-bg">
+          <div class="text-sm text-vscode-fg">No tags</div>
         </div>
       </div>`;
   }
@@ -209,11 +209,11 @@ export class SidebarComponents {
     return `
       <div class="mb-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-medium text-vscode-fg">Work Items</h3>
-          <button class="text-vscode-fg opacity-60 hover:text-vscode-fg text-lg">+</button>
+          <h3 class="text-sm font-semibold text-vscode-fg">Work Items</h3>
+          <button class="text-vscode-link hover:underline text-lg font-medium">+</button>
         </div>
-        <div class="p-4 rounded-lg border border-vscode-border bg-vscode-input-bg opacity-30">
-          <div class="text-sm text-vscode-fg opacity-60">No work items</div>
+        <div class="p-4 rounded-lg border border-vscode-input-border bg-vscode-input-bg">
+          <div class="text-sm text-vscode-fg">No work items</div>
         </div>
       </div>`;
   }

@@ -71,13 +71,19 @@ export class PullRequestItem extends vscode.TreeItem {
       arguments: [pullRequest],
     };
 
-    // Set icon based on status
+    // Set icon based on status with colors: draft=gray, active=blue, completed=green
     if (pullRequest.isDraft) {
-      this.iconPath = new vscode.ThemeIcon('git-pull-request-draft');
+      this.iconPath = new vscode.ThemeIcon(
+        'git-pull-request-draft',
+        new vscode.ThemeColor('charts.gray'),
+      );
     } else if (pullRequest.status === 'Active') {
-      this.iconPath = new vscode.ThemeIcon('git-pull-request');
+      this.iconPath = new vscode.ThemeIcon(
+        'git-pull-request',
+        new vscode.ThemeColor('charts.blue'),
+      );
     } else if (pullRequest.status === 'Completed') {
-      this.iconPath = new vscode.ThemeIcon('git-merge');
+      this.iconPath = new vscode.ThemeIcon('git-merge', new vscode.ThemeColor('charts.green'));
     } else {
       this.iconPath = new vscode.ThemeIcon('git-pull-request-closed');
     }

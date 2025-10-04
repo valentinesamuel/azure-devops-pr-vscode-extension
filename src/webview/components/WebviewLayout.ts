@@ -125,6 +125,53 @@ ${WebviewStyles.getHtmlHead()}
       input.value = '';
       input.blur();
     }
+
+    // Description Edit Functions
+    function editDescription(currentDescription) {
+      const displayDiv = document.getElementById('descriptionDisplay');
+      const editDiv = document.getElementById('descriptionEdit');
+      const textarea = document.getElementById('descriptionTextarea');
+
+      if (displayDiv && editDiv && textarea) {
+        displayDiv.classList.add('hidden');
+        editDiv.classList.remove('hidden');
+        textarea.value = currentDescription;
+        textarea.focus();
+      }
+    }
+
+    function cancelEditDescription(originalDescription) {
+      const displayDiv = document.getElementById('descriptionDisplay');
+      const editDiv = document.getElementById('descriptionEdit');
+      const textarea = document.getElementById('descriptionTextarea');
+
+      if (displayDiv && editDiv && textarea) {
+        editDiv.classList.add('hidden');
+        displayDiv.classList.remove('hidden');
+        textarea.value = originalDescription;
+      }
+    }
+
+    function saveDescription() {
+      const textarea = document.getElementById('descriptionTextarea');
+      const newDescription = textarea.value.trim();
+
+      vscode.postMessage({
+        command: 'updateDescription',
+        description: newDescription,
+        prId: ${pullRequest.id}
+      });
+
+      // Update the display
+      const displayDiv = document.getElementById('descriptionDisplay');
+      const editDiv = document.getElementById('descriptionEdit');
+
+      if (displayDiv && editDiv) {
+        displayDiv.innerHTML = newDescription.replace(/\\n/g, '<br>') || 'No description provided';
+        editDiv.classList.add('hidden');
+        displayDiv.classList.remove('hidden');
+      }
+    }
   </script>
 </body>
 </html>`;

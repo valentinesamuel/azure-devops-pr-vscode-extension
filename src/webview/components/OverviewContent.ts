@@ -10,12 +10,46 @@ export class OverviewContent {
     const description = pullRequest.description || 'No description provided';
     // Convert newlines to <br> tags for proper rendering
     const formattedDescription = description.replace(/\n/g, '<br>');
+    const isActive = pullRequest.status === 'Active';
+
+    // Escape the description for use in JavaScript
+    const escapedDescription = (pullRequest.description || '')
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r');
 
     return `
       <div class="mb-8">
-        <h3 class="text-lg font-medium text-vscode-fg mb-4">Description</h3>
-        <div class="bg-vscode-input-bg rounded-lg border border-vscode-input-border p-6 text-sm text-vscode-fg opacity-70 whitespace-pre-wrap">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-medium text-vscode-fg">Description</h3>
+          ${isActive ? `<button id="editDescriptionBtn" onclick="editDescription('${escapedDescription}')" class="text-vscode-link text-sm hover:underline">Edit</button>` : ''}
+        </div>
+        <div id="descriptionDisplay" class="bg-vscode-input-bg rounded-lg border border-vscode-input-border p-6 text-sm text-vscode-fg opacity-70 whitespace-pre-wrap">
           ${formattedDescription}
+        </div>
+        <div id="descriptionEdit" class="hidden space-y-3">
+          <textarea
+            id="descriptionTextarea"
+            rows="8"
+            class="w-full bg-vscode-input-bg border border-vscode-input-border rounded-lg px-4 py-3 text-sm text-vscode-fg placeholder-vscode-fg opacity-60 focus:outline-none focus:border-vscode-link resize-none"
+          ></textarea>
+          <div class="flex justify-end space-x-2">
+            <button
+              id="cancelDescriptionBtn"
+              onclick="cancelEditDescription('${escapedDescription}')"
+              class="px-4 py-2 text-sm text-vscode-fg opacity-60 hover:opacity-100 rounded transition-opacity"
+            >
+              Cancel
+            </button>
+            <button
+              id="saveDescriptionBtn"
+              onclick="saveDescription()"
+              class="px-4 py-2 text-sm bg-vscode-button-bg text-vscode-button-fg hover:bg-vscode-button-hover rounded transition-colors"
+            >
+              Save
+            </button>
+          </div>
         </div>
       </div>`;
   }

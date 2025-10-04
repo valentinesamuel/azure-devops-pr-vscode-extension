@@ -236,6 +236,34 @@ export class PrDetailsWebviewProvider {
             // TODO: Implement actual comment posting to Azure DevOps API
             // For now, just show a placeholder message
             break;
+          case 'updateDescription':
+            try {
+              if (pullRequest.repository) {
+                const pat = await authService.getPersonalAccessToken();
+                if (pat) {
+                  const apiClient = new AzureDevOpsApiClient({
+                    organization: pullRequest.repository.organization,
+                    pat,
+                  });
+
+                  await apiClient.updatePullRequestDescription(
+                    pullRequest.repository.project,
+                    pullRequest.repository.repository,
+                    message.prId,
+                    message.description,
+                  );
+
+                  vscode.window.showInformationMessage(
+                    `Successfully updated description for PR #${message.prId}`,
+                  );
+                }
+              }
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Failed to update PR description: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              );
+            }
+            break;
         }
       },
       undefined,

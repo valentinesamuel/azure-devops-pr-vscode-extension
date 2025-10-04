@@ -460,4 +460,38 @@ export class AzureDevOpsApiClient {
       throw error;
     }
   }
+
+  /**
+   * Updates a pull request's description
+   */
+  async updatePullRequestDescription(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+    description: string,
+  ): Promise<void> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}?api-version=7.1-preview.1`;
+
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: this.headers,
+        body: JSON.stringify({
+          description: description,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to update PR description: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        vscode.window.showErrorMessage(`Error updating PR description: ${error.message}`);
+      }
+      throw error;
+    }
+  }
 }
