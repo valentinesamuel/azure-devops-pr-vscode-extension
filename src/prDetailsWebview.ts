@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { PullRequest } from './pullRequestProvider';
+import { PullRequest, Reviewer } from './pullRequestProvider';
 import { WebviewLayout } from './webview/components/WebviewLayout';
 import {
   AzureDevOpsApiClient,
@@ -10,6 +10,81 @@ import { AuthService } from './services/authService';
 
 export class PrDetailsWebviewProvider {
   private static activePanels: Map<number, vscode.WebviewPanel> = new Map();
+
+  /**
+   * Enriches reviewer data with team member information from vote threads
+   */
+  private static enrichReviewersWithTeamMembers(
+    reviewers: Reviewer[],
+    threads: CommentThread[],
+  ): Reviewer[] {
+    console.log('🔍 enrichReviewersWithTeamMembers - Starting enrichment');
+    console.log('🔍 Reviewers:', reviewers);
+
+    // Create a map of team ID to members who voted on behalf of that team
+    // The data comes from the reviewer's votedFor array
+    const teamMemberMap = new Map<
+      string,
+      Array<{ displayName: string; id: string; uniqueName: string; imageUrl?: string }>
+    >();
+
+    // First pass: find reviewers who voted on behalf of teams
+    reviewers.forEach((reviewer) => {
+      // If this reviewer has votedFor array, they voted on behalf of teams
+      if (reviewer.votedFor && reviewer.votedFor.length > 0) {
+        reviewer.votedFor.forEach((team: any) => {
+          if (team.isContainer) {
+            // This reviewer voted on behalf of this team
+            const teamId = team.id;
+            if (!teamMemberMap.has(teamId)) {
+              teamMemberMap.set(teamId, []);
+            }
+            const members = teamMemberMap.get(teamId)!;
+            // Add this reviewer as a member who voted for the team
+            if (!members.find((m) => m.id === reviewer.id)) {
+              members.push({
+                displayName: reviewer.displayName,
+                id: reviewer.id,
+                uniqueName: reviewer.uniqueName,
+                imageUrl: reviewer.imageUrl,
+              });
+              console.log(
+                '🔍 Found:',
+                reviewer.displayName,
+                'voted on behalf of team:',
+                team.displayName,
+              );
+            }
+          }
+        });
+      }
+    });
+
+    console.log('🔍 Team member map:', teamMemberMap);
+
+    // Second pass: enrich team reviewers with member information
+    const enrichedReviewers = reviewers.map((reviewer) => {
+      console.log('🔍 Processing reviewer:', {
+        displayName: reviewer.displayName,
+        id: reviewer.id,
+        isContainer: reviewer.isContainer,
+        hasMembers: teamMemberMap.has(reviewer.id),
+      });
+
+      if (reviewer.isContainer && teamMemberMap.has(reviewer.id)) {
+        const enriched = {
+          ...reviewer,
+          votedFor: teamMemberMap.get(reviewer.id),
+        };
+        console.log('🔍 Enriched team reviewer:', enriched);
+        return enriched;
+      }
+      return reviewer;
+    });
+
+    console.log('🔍 Final enriched reviewers:', enrichedReviewers);
+    return enrichedReviewers;
+  }
 
   public static async createOrShow(
     extensionUri: vscode.Uri,
@@ -98,6 +173,14 @@ export class PrDetailsWebviewProvider {
           };
 
           threads.push(prCreatedThread);
+
+          // Enrich reviewer data with team member information from threads
+          if (pullRequest.reviewersDetailed) {
+            pullRequest.reviewersDetailed = this.enrichReviewersWithTeamMembers(
+              pullRequest.reviewersDetailed,
+              threads,
+            );
+          }
         }
       }
     } catch (error) {

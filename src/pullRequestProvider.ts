@@ -4,6 +4,23 @@ import { GitService, AzureDevOpsRepository } from './services/gitService';
 import { AzureDevOpsApiClient } from './services/azureDevOpsApiClient';
 import { PrTransformer } from './services/prTransformer';
 
+export interface Reviewer {
+  displayName: string;
+  uniqueName: string;
+  id: string;
+  vote: number; // 10=approved, 5=approved with suggestions, 0=no vote, -5=waiting, -10=rejected
+  isRequired?: boolean;
+  imageUrl?: string;
+  isContainer?: boolean; // True if this is a team/group
+  votedFor?: Array<{
+    // Members who voted on behalf of this team/group
+    displayName: string;
+    id: string;
+    uniqueName: string;
+    imageUrl?: string;
+  }>;
+}
+
 export interface PullRequest {
   id: number;
   title: string;
@@ -14,6 +31,7 @@ export interface PullRequest {
   targetBranch: string;
   sourceBranch: string;
   reviewers: string[];
+  reviewersDetailed?: Reviewer[]; // Detailed reviewer information
   description?: string;
   repository?: AzureDevOpsRepository; // Link PR to its repository
 }

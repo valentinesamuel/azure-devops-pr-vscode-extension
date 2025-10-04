@@ -27,6 +27,16 @@ export class PrTransformer {
       targetBranch,
       sourceBranch,
       reviewers: azurePr.reviewers.map((r) => r.uniqueName),
+      reviewersDetailed: azurePr.reviewers.map((r) => ({
+        displayName: r.displayName,
+        uniqueName: r.uniqueName,
+        id: r.id,
+        vote: r.vote,
+        isRequired: r.isRequired,
+        imageUrl: r.imageUrl,
+        isContainer: r.isContainer,
+        votedFor: r.votedFor,
+      })),
       description: azurePr.description || undefined,
       repository,
     };

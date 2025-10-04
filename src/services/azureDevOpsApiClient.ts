@@ -73,6 +73,15 @@ export interface AzureDevOpsPullRequest {
     uniqueName: string;
     id: string;
     vote: number;
+    isRequired?: boolean;
+    imageUrl?: string;
+    isContainer?: boolean;
+    votedFor?: Array<{
+      displayName: string;
+      id: string;
+      uniqueName: string;
+      imageUrl?: string;
+    }>;
   }>;
   repository: {
     id: string;
@@ -94,6 +103,14 @@ export interface CommentIdentity {
 export interface IdentityRefWithVote extends CommentIdentity {
   vote?: number; // 10=approved, 5=approved with suggestions, 0=no vote, -5=waiting, -10=rejected
   isRequired?: boolean;
+  isContainer?: boolean; // True if this is a team/group
+  votedFor?: Array<{
+    // Members who voted on behalf of this team/group
+    displayName: string;
+    id: string;
+    uniqueName: string;
+    imageUrl?: string;
+  }>;
 }
 
 export interface Comment {

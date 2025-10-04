@@ -216,9 +216,7 @@ export class ThreadComponents {
    */
   private static cleanDisplayName(displayName: string): string {
     if (displayName.includes(']\\')) {
-      const cleaned = displayName.split(']\\')[1]?.trim() || displayName;
-
-      return cleaned;
+      return displayName.split(']\\')[1]?.trim() || displayName;
     }
     return displayName;
   }
@@ -229,14 +227,10 @@ export class ThreadComponents {
   private static getInitials(displayName: string): string {
     const cleanName = this.cleanDisplayName(displayName);
     const parts = cleanName.trim().split(' ');
-    let initials;
     if (parts.length >= 2) {
-      initials = (parts[0][0] + parts[1][0]).toUpperCase();
-    } else {
-      initials = cleanName.substring(0, 2).toUpperCase();
+      return (parts[0][0] + parts[1][0]).toUpperCase();
     }
-
-    return initials;
+    return cleanName.substring(0, 2).toUpperCase();
   }
 
   /**
@@ -292,8 +286,6 @@ export class ThreadComponents {
     author: { displayName?: string; imageUrl?: string },
     size: 'small' | 'medium' = 'small',
   ): string {
-    console.log('RENDERAVATER', author);
-
     const displayName = author.displayName || 'Unknown User';
     const imageUrl = author.imageUrl;
     const sizeClass = size === 'small' ? 'w-6 h-6' : 'w-8 h-8';

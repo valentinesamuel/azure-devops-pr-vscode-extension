@@ -57,7 +57,7 @@ export class OverviewContent {
         ${this.renderLeftColumn(pullRequest, threads, userProfile)}
 
         <!-- Right Column - Sidebar -->
-        ${SidebarComponents.renderSidebar()}
+        ${SidebarComponents.renderSidebar(pullRequest.reviewersDetailed)}
       </div>`;
   }
 }

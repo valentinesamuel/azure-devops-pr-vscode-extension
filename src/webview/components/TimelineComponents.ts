@@ -24,7 +24,6 @@ export class TimelineComponents {
   }
 
   static renderCommentInput(userProfile?: { displayName?: string; imageUrl?: string }): string {
-    console.log(userProfile);
     const displayName = userProfile?.displayName || 'VS Code';
     const initials = this.getInitials(displayName);
     const avatarHtml = userProfile?.imageUrl
