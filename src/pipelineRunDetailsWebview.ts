@@ -3,6 +3,7 @@ import { PipelineRunLayout } from './webview/components/PipelineRunLayout';
 import { AzureDevOpsApiClient, PipelineRunStage } from './services/azureDevOpsApiClient';
 import { AuthService } from './services/authService';
 import { AzureDevOpsRepository } from './services/gitService';
+import { StageDetailsWebviewProvider } from './stageDetailsWebview';
 
 export interface PipelineRunDetails {
   id: number;
@@ -30,7 +31,7 @@ export class PipelineRunDetailsWebviewProvider {
     extensionUri: vscode.Uri,
     pipelineRun: PipelineRunDetails,
     authService: AuthService,
-  ) {
+  ): Promise<void> {
     // Check if a panel for this run already exists
     const existingPanel = this.activePanels.get(pipelineRun.id);
     if (existingPanel) {
@@ -87,6 +88,21 @@ export class PipelineRunDetailsWebviewProvider {
           case 'openInBrowser':
             if (pipelineRun.url) {
               vscode.env.openExternal(vscode.Uri.parse(pipelineRun.url));
+            }
+            break;
+          case 'openStageDetails':
+            const stage = stages.find((s) => s.id === message.stageId);
+            if (stage && pipelineRun.repository) {
+              await StageDetailsWebviewProvider.createOrShow(
+                extensionUri,
+                pipelineRun.pipelineName,
+                pipelineRun.buildNumber,
+                pipelineRun.id,
+                pipelineRun.repository.project,
+                pipelineRun.repository,
+                stage,
+                authService,
+              );
             }
             break;
         }

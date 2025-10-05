@@ -93,6 +93,14 @@ export class PipelineRunLayout {
               command: 'openInBrowser'
             });
           }
+
+          function openStageDetails(stageId, stageName) {
+            vscode.postMessage({
+              command: 'openStageDetails',
+              stageId: stageId,
+              stageName: stageName
+            });
+          }
         </script>
       </body>
       </html>
@@ -104,7 +112,7 @@ export class PipelineRunLayout {
       // Dummy data for demonstration
       return `
         <div class="stage-wrapper">
-          <div class="stage-card succeeded">
+          <div class="stage-card succeeded" onclick="openStageDetails('dummy-dev', 'DEV')">
             <div class="stage-header">
               <span class="stage-icon">✓</span>
               <span class="stage-name">DEV</span>
@@ -152,7 +160,7 @@ export class PipelineRunLayout {
       .map(
         (stage, index) => `
       <div class="stage-wrapper">
-        <div class="stage-card ${this.getStageClass(stage)}">
+        <div class="stage-card ${this.getStageClass(stage)}" onclick="openStageDetails('${stage.id}', '${stage.name}')">
           <div class="stage-header">
             <span class="stage-icon">${this.getStageIcon(stage)}</span>
             <span class="stage-name">${stage.name}</span>

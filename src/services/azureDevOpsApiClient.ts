@@ -165,6 +165,30 @@ export interface PipelineRunStage {
   order: number;
 }
 
+export interface PipelineRunJob {
+  id: string;
+  name: string;
+  state: 'pending' | 'inProgress' | 'completed' | 'skipped';
+  result?: 'succeeded' | 'failed' | 'canceled' | 'skipped';
+  startTime?: Date;
+  finishTime?: Date;
+  order: number;
+  parentId?: string;
+}
+
+export interface PipelineRunTask {
+  id: string;
+  name: string;
+  state: 'pending' | 'inProgress' | 'completed' | 'skipped';
+  result?: 'succeeded' | 'failed' | 'canceled' | 'skipped';
+  startTime?: Date;
+  finishTime?: Date;
+  order: number;
+  parentId?: string;
+  logUrl?: string;
+  logId?: number;
+}
+
 export interface PipelineRun {
   id: number;
   buildNumber: string;
@@ -853,7 +877,152 @@ export class AzureDevOpsApiClient {
       return stages;
     } catch (error) {
       if (error instanceof Error) {
-        console.error(`Error fetching build timeline: ${error.message}`);
+        console.log(`Error fetching build timeline: ${error.message}`);
+      }
+      return [];
+    }
+  }
+
+  /**
+   * Fetches jobs for a specific stage (goes through Phases)
+   * Azure DevOps hierarchy: Stage → Phase → Job → Task
+   * @param project - The project name
+   * @param buildId - The build ID
+   * @param stageId - The stage ID
+   */
+  async getStageJobs(project: string, buildId: number, stageId: string): Promise<PipelineRunJob[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/build/builds/${buildId}/timeline?api-version=7.1`;
+      console.log('getStageJobs URL:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch stage jobs: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { records?: any[] };
+      const records = data.records || [];
+
+      // First, find all Phases that belong to this Stage
+      const phases = records.filter(
+        (record) => record.type === 'Phase' && record.parentId === stageId,
+      );
+      console.log(
+        `Found ${phases.length} phases for stage ${stageId}:`,
+        phases.map((p) => p.name),
+      );
+
+      // Then, find all Jobs that belong to these Phases
+      const phaseIds = phases.map((p) => p.id);
+      const jobs = records
+        .filter((record) => record.type === 'Job' && phaseIds.includes(record.parentId))
+        .map((job) => ({
+          id: job.id,
+          name: job.name,
+          state: job.state,
+          result: job.result,
+          startTime: job.startTime ? new Date(job.startTime) : undefined,
+          finishTime: job.finishTime ? new Date(job.finishTime) : undefined,
+          order: job.order || 0,
+          parentId: job.parentId,
+        }))
+        .sort((a, b) => a.order - b.order);
+
+      console.log(`Found ${jobs.length} jobs across ${phases.length} phases`);
+      return jobs;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching stage jobs: ${error.message}`);
+      }
+      return [];
+    }
+  }
+
+  /**
+   * Fetches tasks for a specific job
+   * @param project - The project name
+   * @param buildId - The build ID
+   * @param jobId - The job ID
+   */
+  async getJobTasks(project: string, buildId: number, jobId: string): Promise<PipelineRunTask[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/build/builds/${buildId}/timeline?api-version=7.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch job tasks: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { records?: any[] };
+      const records = data.records || [];
+
+      // Filter for tasks that belong to this job
+      const tasks = records
+        .filter((record) => record.type === 'Task' && record.parentId === jobId)
+        .map((task) => ({
+          id: task.id,
+          name: task.name,
+          state: task.state,
+          result: task.result,
+          startTime: task.startTime ? new Date(task.startTime) : undefined,
+          finishTime: task.finishTime ? new Date(task.finishTime) : undefined,
+          order: task.order || 0,
+          parentId: task.parentId,
+          logId: task.log?.id,
+          logUrl: task.log?.url,
+        }))
+        .sort((a, b) => a.order - b.order);
+
+      return tasks;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching job tasks: ${error.message}`);
+      }
+      return [];
+    }
+  }
+
+  /**
+   * Fetches logs for a specific task
+   * @param project - The project name
+   * @param buildId - The build ID
+   * @param logId - The log ID
+   */
+  async getTaskLogs(project: string, buildId: number, logId: number): Promise<string[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/build/builds/${buildId}/logs/${logId}?api-version=7.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch task logs: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const logText = await response.text();
+      return logText.split('\n');
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching task logs: ${error.message}`);
       }
       return [];
     }

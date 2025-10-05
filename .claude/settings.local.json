@@ -6,7 +6,8 @@
       "Bash(npm test)",
       "WebFetch(domain:dev.azure.com)",
       "WebSearch",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
