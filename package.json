@@ -46,9 +46,20 @@
         "command": "azureDevOpsPr.filterPipelineRuns",
         "title": "Filter Pipeline Runs",
         "icon": "$(filter)"
+      },
+      {
+        "command": "azureDevOpsPr.openPipelineRunDetails",
+        "title": "View Pipeline Run Details"
       }
     ],
     "menus": {
+      "view/item/context": [
+        {
+          "command": "azureDevOpsPr.openPipelineRunDetails",
+          "when": "view == pipelineRuns && viewItem == pipelineRun",
+          "group": "inline"
+        }
+      ],
       "view/title": [
         {
           "command": "azureDevOpsPr.filterPullRequests",

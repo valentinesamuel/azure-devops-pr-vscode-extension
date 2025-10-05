@@ -2,8 +2,9 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { PullRequestProvider, PullRequest } from './pullRequestProvider';
-import { PipelineRunProvider } from './pipelineRunProvider';
+import { PipelineRunProvider, PipelineRunItem } from './pipelineRunProvider';
 import { PrDetailsWebviewProvider } from './prDetailsWebview';
+import { PipelineRunDetailsWebviewProvider } from './pipelineRunDetailsWebview';
 import { AuthService } from './services/authService';
 
 // This method is called when your extension is activated
@@ -169,6 +170,35 @@ export async function activate(context: vscode.ExtensionContext) {
     },
   );
 
+  // Register command to open pipeline run details
+  const openPipelineRunDetailsCommand = vscode.commands.registerCommand(
+    'azureDevOpsPr.openPipelineRunDetails',
+    async (pipelineRunItem: PipelineRunItem) => {
+      await PipelineRunDetailsWebviewProvider.createOrShow(
+        context.extensionUri,
+        {
+          id: pipelineRunItem.pipelineRun.id,
+          buildNumber: pipelineRunItem.pipelineRun.buildNumber,
+          status: pipelineRunItem.pipelineRun.status,
+          result: pipelineRunItem.pipelineRun.result,
+          queueTime: pipelineRunItem.pipelineRun.queueTime,
+          startTime: pipelineRunItem.pipelineRun.startTime,
+          finishTime: pipelineRunItem.pipelineRun.finishTime,
+          requestedFor: pipelineRunItem.pipelineRun.requestedFor,
+          requestedForImageUrl: pipelineRunItem.pipelineRun.requestedForImageUrl,
+          pipelineName: pipelineRunItem.pipelineRun.pipelineName,
+          sourceBranch: pipelineRunItem.pipelineRun.sourceBranch,
+          sourceVersion: pipelineRunItem.pipelineRun.sourceVersion,
+          url: pipelineRunItem.pipelineRun.url,
+          reason: pipelineRunItem.pipelineRun.reason,
+          repository: pipelineRunItem.repository,
+          stages: pipelineRunItem.pipelineRun.stages,
+        },
+        authService,
+      );
+    },
+  );
+
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
@@ -202,6 +232,7 @@ export async function activate(context: vscode.ExtensionContext) {
     openPrDetailsCommand,
     refreshPipelineRunsCommand,
     filterPipelineRunsCommand,
+    openPipelineRunDetailsCommand,
   );
 }
 
