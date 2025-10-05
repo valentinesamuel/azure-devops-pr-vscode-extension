@@ -9,6 +9,7 @@ export interface AzureDevOpsRepository {
   organization: string;
   project: string;
   repository: string;
+  repositoryId?: string; // GUID from Azure DevOps API
   remoteUrl: string;
 }
 

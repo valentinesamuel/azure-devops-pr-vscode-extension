@@ -36,6 +36,16 @@
         "command": "azureDevOpsPr.filterPullRequests",
         "title": "Filter Pull Requests",
         "icon": "$(filter)"
+      },
+      {
+        "command": "azureDevOpsPr.refreshPipelineRuns",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "azureDevOpsPr.filterPipelineRuns",
+        "title": "Filter Pipeline Runs",
+        "icon": "$(filter)"
       }
     ],
     "menus": {
@@ -53,6 +63,21 @@
         {
           "command": "azureDevOpsPr.signOut",
           "when": "view == pullRequests",
+          "group": "navigation"
+        },
+        {
+          "command": "azureDevOpsPr.filterPipelineRuns",
+          "when": "view == pipelineRuns",
+          "group": "navigation"
+        },
+        {
+          "command": "azureDevOpsPr.refreshPipelineRuns",
+          "when": "view == pipelineRuns",
+          "group": "navigation"
+        },
+        {
+          "command": "azureDevOpsPr.signOut",
+          "when": "view == pipelineRuns",
           "group": "navigation"
         }
       ]

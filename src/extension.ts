@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { PullRequestProvider, PullRequest } from './pullRequestProvider';
+import { PipelineRunProvider } from './pipelineRunProvider';
 import { PrDetailsWebviewProvider } from './prDetailsWebview';
 import { AuthService } from './services/authService';
 
@@ -22,12 +23,17 @@ export async function activate(context: vscode.ExtensionContext) {
   const pullRequestProvider = new PullRequestProvider(authService);
   vscode.window.registerTreeDataProvider('pullRequests', pullRequestProvider);
 
+  // Create and register the pipeline run tree data provider
+  const pipelineRunProvider = new PipelineRunProvider(authService);
+  vscode.window.registerTreeDataProvider('pipelineRuns', pipelineRunProvider);
+
   // Register sign-in command
   const signInCommand = vscode.commands.registerCommand('azureDevOpsPr.signIn', async () => {
     const success = await authService.promptForCredentials();
     if (success) {
-      // Refresh the tree view to show pull requests
+      // Refresh the tree view to show pull requests and pipeline runs
       pullRequestProvider.refresh();
+      pipelineRunProvider.refresh();
     }
   });
 
@@ -36,6 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
     await authService.signOut();
     // Refresh the tree view to show sign-in prompt
     pullRequestProvider.refresh();
+    pipelineRunProvider.refresh();
   });
 
   // Register refresh command for pull requests
@@ -104,6 +111,64 @@ export async function activate(context: vscode.ExtensionContext) {
     },
   );
 
+  // Register refresh command for pipeline runs
+  const refreshPipelineRunsCommand = vscode.commands.registerCommand(
+    'azureDevOpsPr.refreshPipelineRuns',
+    () => {
+      pipelineRunProvider.refresh();
+    },
+  );
+
+  // Register filter command for pipeline runs
+  const filterPipelineRunsCommand = vscode.commands.registerCommand(
+    'azureDevOpsPr.filterPipelineRuns',
+    async () => {
+      const currentFilter = pipelineRunProvider.getFilter();
+
+      // Create quick pick items with checkboxes
+      const items: vscode.QuickPickItem[] = [
+        {
+          label: '$(check) In Progress',
+          picked: currentFilter.inProgress,
+          description: 'Show builds currently running',
+        },
+        {
+          label: '$(check) Succeeded',
+          picked: currentFilter.succeeded,
+          description: 'Show successful builds',
+        },
+        {
+          label: '$(check) Failed',
+          picked: currentFilter.failed,
+          description: 'Show failed builds',
+        },
+        {
+          label: '$(check) Canceled',
+          picked: currentFilter.canceled,
+          description: 'Show canceled builds',
+        },
+      ];
+
+      const result = await vscode.window.showQuickPick(items, {
+        canPickMany: true,
+        title: 'Filter Pipeline Runs',
+        placeHolder: 'Select which build types to show',
+      });
+
+      if (result) {
+        // Update filter based on selected items
+        const newFilter = {
+          inProgress: result.some((item) => item.label.includes('In Progress')),
+          succeeded: result.some((item) => item.label.includes('Succeeded')),
+          failed: result.some((item) => item.label.includes('Failed')),
+          canceled: result.some((item) => item.label.includes('Canceled')),
+        };
+
+        pipelineRunProvider.setFilter(newFilter);
+      }
+    },
+  );
+
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
@@ -135,6 +200,8 @@ export async function activate(context: vscode.ExtensionContext) {
     refreshCommand,
     filterCommand,
     openPrDetailsCommand,
+    refreshPipelineRunsCommand,
+    filterPipelineRunsCommand,
   );
 }
 

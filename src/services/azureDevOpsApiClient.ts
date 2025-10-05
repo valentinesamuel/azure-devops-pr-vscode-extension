@@ -142,6 +142,56 @@ export interface PullRequestStatus {
   updatedDate: string;
 }
 
+export interface Pipeline {
+  id: number;
+  name: string;
+  path: string;
+  type: string;
+  queueStatus: string;
+  revision: number;
+  project?: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface PipelineRunStage {
+  id: string;
+  name: string;
+  state: 'pending' | 'inProgress' | 'completed' | 'skipped';
+  result?: 'succeeded' | 'failed' | 'canceled' | 'skipped';
+  startTime?: Date;
+  finishTime?: Date;
+  order: number;
+}
+
+export interface PipelineRun {
+  id: number;
+  buildNumber: string;
+  status: 'inProgress' | 'completed' | 'cancelling' | 'postponed' | 'notStarted' | 'none';
+  result?: 'succeeded' | 'failed' | 'canceled' | 'partiallySucceeded' | 'none';
+  queueTime: Date;
+  startTime?: Date;
+  finishTime?: Date;
+  requestedFor: string;
+  requestedForImageUrl?: string;
+  pipelineName: string;
+  pipelineId: number;
+  sourceBranch: string;
+  sourceVersion: string;
+  repository?: {
+    id: string;
+    name: string;
+  };
+  url?: string;
+  reason?: string; // 'individualCI', 'manual', 'pullRequest', 'schedule', etc.
+  triggerInfo?: {
+    prId?: number;
+    prTitle?: string;
+  };
+  stages?: PipelineRunStage[];
+}
+
 export interface Comment {
   id: number;
   parentCommentId?: number;
@@ -228,6 +278,59 @@ export class AzureDevOpsApiClient {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
+  }
+
+  /**
+   * Cleans up display names that may contain service account names
+   * Falls back to email-based name extraction if needed
+   */
+  private getCleanDisplayName(identity: any): string {
+    if (!identity) {
+      return 'Unknown';
+    }
+
+    const displayName = identity.displayName || '';
+    const uniqueName = identity.uniqueName || '';
+
+    // Check if displayName looks like a GUID (contains only hex chars, hyphens, and numbers)
+    const isGuidLike = /^[0-9a-fA-F\-\s]+$/.test(displayName);
+
+    // If displayName is a service account name or GUID-like, use uniqueName instead
+    if (
+      displayName.includes('Microsoft.VisualStudio.Services') ||
+      displayName.includes('TEAM FOUNDATION') ||
+      isGuidLike ||
+      displayName.trim() === ''
+    ) {
+      // Check if uniqueName is also a GUID-like string
+      if (uniqueName && /^[0-9a-fA-F\-\s]+$/.test(uniqueName)) {
+        // Both displayName and uniqueName are GUIDs, check other fields
+        const name = identity.name || identity.providerDisplayName || identity.id;
+        if (name && !/^[0-9a-fA-F\-\s]+$/.test(name)) {
+          return name;
+        }
+        return 'Unknown User';
+      }
+
+      // Extract name from email (before @)
+      if (uniqueName && uniqueName.includes('@')) {
+        const namePart = uniqueName.split('@')[0];
+        // Convert dot-separated or hyphen-separated names to title case
+        return namePart
+          .split(/[._-]/)
+          .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+          .join(' ');
+      }
+
+      // If uniqueName exists but doesn't have @, return it as-is (might be a username)
+      if (uniqueName && uniqueName.trim() !== '') {
+        return uniqueName;
+      }
+
+      return 'Unknown User';
+    }
+
+    return displayName;
   }
 
   /**
@@ -492,6 +595,267 @@ export class AzureDevOpsApiClient {
         vscode.window.showErrorMessage(`Error updating PR description: ${error.message}`);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Fetches repository information including the repository GUID
+   * @param project - The project name
+   * @param repositoryName - The repository name
+   */
+  async getRepositoryId(project: string, repositoryName: string): Promise<string | null> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryName}?api-version=7.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          `Failed to fetch repository ID: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+        return null;
+      }
+
+      const repo = (await response.json()) as { id?: string };
+      return repo.id || null;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching repository ID: ${error.message}`);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Fetches pipelines (build definitions) for a specific project and repository
+   * @param project - The project name
+   * @param repositoryId - The repository GUID (not name)
+   */
+  async getPipelines(project: string, repositoryId: string): Promise<Pipeline[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/build/definitions?repositoryId=${repositoryId}&repositoryType=TfsGit&api-version=7.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch pipelines: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { value?: any[] };
+      const definitions = data.value || [];
+
+      return definitions.map((def) => ({
+        id: def.id,
+        name: def.name,
+        path: def.path || '\\',
+        type: def.type,
+        queueStatus: def.queueStatus,
+        revision: def.revision,
+        project: def.project
+          ? {
+              id: def.project.id,
+              name: def.project.name,
+            }
+          : undefined,
+      }));
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching pipelines: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches pipeline runs (builds) for a specific pipeline
+   * @param project - The project name
+   * @param pipelineId - The pipeline definition ID
+   * @param top - Optional: Number of builds to return (default: 3)
+   */
+  async getPipelineRunsForPipeline(
+    project: string,
+    pipelineId: number,
+    top: number = 3,
+  ): Promise<PipelineRun[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/build/builds?definitions=${pipelineId}&api-version=7.1&$top=${top}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch pipeline runs: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { value?: any[] };
+      const builds = data.value || [];
+
+      // Transform Azure DevOps build format to our PipelineRun interface
+      return builds.map((build) => ({
+        id: build.id,
+        buildNumber: build.buildNumber,
+        status: build.status,
+        result: build.result,
+        queueTime: new Date(build.queueTime),
+        startTime: build.startTime ? new Date(build.startTime) : undefined,
+        finishTime: build.finishTime ? new Date(build.finishTime) : undefined,
+        requestedFor: this.getCleanDisplayName(build.requestedFor),
+        requestedForImageUrl: build.requestedFor?.imageUrl,
+        pipelineName: build.definition?.name || 'Unknown Pipeline',
+        pipelineId: build.definition?.id || 0,
+        sourceBranch: build.sourceBranch?.replace('refs/heads/', '') || 'Unknown',
+        sourceVersion: build.sourceVersion?.substring(0, 7) || '',
+        repository: build.repository
+          ? {
+              id: build.repository.id,
+              name: build.repository.name,
+            }
+          : undefined,
+        url: build._links?.web?.href,
+        reason: build.reason,
+        triggerInfo:
+          build.triggerInfo && build.triggerInfo['pr.number']
+            ? {
+                prId: parseInt(build.triggerInfo['pr.number'], 10),
+                prTitle: build.triggerInfo['pr.title'],
+              }
+            : undefined,
+      }));
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching pipeline runs: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches pipeline runs (builds) for a specific repository
+   * @param project - The project name
+   * @param repositoryId - The repository GUID (not name)
+   * @param top - Optional: Number of builds to return (default: 50)
+   */
+  async getPipelineRuns(
+    project: string,
+    repositoryId: string,
+    top: number = 50,
+  ): Promise<PipelineRun[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/build/builds?repositoryId=${repositoryId}&repositoryType=TfsGit&api-version=7.1&$top=${top}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch pipeline runs: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { value?: any[] };
+      const builds = data.value || [];
+
+      // Transform Azure DevOps build format to our PipelineRun interface
+      return builds.map((build) => ({
+        id: build.id,
+        buildNumber: build.buildNumber,
+        status: build.status,
+        result: build.result,
+        queueTime: new Date(build.queueTime),
+        startTime: build.startTime ? new Date(build.startTime) : undefined,
+        finishTime: build.finishTime ? new Date(build.finishTime) : undefined,
+        requestedFor: this.getCleanDisplayName(build.requestedFor),
+        requestedForImageUrl: build.requestedFor?.imageUrl,
+        pipelineName: build.definition?.name || 'Unknown Pipeline',
+        pipelineId: build.definition?.id || 0,
+        sourceBranch: build.sourceBranch?.replace('refs/heads/', '') || 'Unknown',
+        sourceVersion: build.sourceVersion?.substring(0, 7) || '',
+        repository: build.repository
+          ? {
+              id: build.repository.id,
+              name: build.repository.name,
+            }
+          : undefined,
+        url: build._links?.web?.href,
+        reason: build.reason,
+        triggerInfo:
+          build.triggerInfo && build.triggerInfo['pr.number']
+            ? {
+                prId: parseInt(build.triggerInfo['pr.number'], 10),
+                prTitle: build.triggerInfo['pr.title'],
+              }
+            : undefined,
+      }));
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching pipeline runs: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches the timeline (stages/jobs) for a specific build
+   * @param project - The project name
+   * @param buildId - The build ID
+   */
+  async getBuildTimeline(project: string, buildId: number): Promise<PipelineRunStage[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/build/builds/${buildId}/timeline?api-version=7.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch build timeline: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { records?: any[] };
+      const records = data.records || [];
+
+      // Filter for stage-level records only
+      const stages = records
+        .filter((record) => record.type === 'Stage')
+        .map((stage) => ({
+          id: stage.id,
+          name: stage.name,
+          state: stage.state,
+          result: stage.result,
+          startTime: stage.startTime ? new Date(stage.startTime) : undefined,
+          finishTime: stage.finishTime ? new Date(stage.finishTime) : undefined,
+          order: stage.order || 0,
+        }))
+        .sort((a, b) => a.order - b.order);
+
+      return stages;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching build timeline: ${error.message}`);
+      }
+      return [];
     }
   }
 }
