@@ -166,15 +166,18 @@ export class SidebarComponents {
     return `
       <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-vscode-fg">Reviewers</h3>
-          <button class="text-vscode-link text-sm hover:underline font-medium">Add</button>
+          <h3 class="text-sm font-bold text-vscode-fg flex items-center gap-2">
+            <span>👥</span>
+            <span>Reviewers</span>
+          </h3>
+          <button class="text-azure text-sm hover:underline font-medium transition-all hover:text-azure/80">Add</button>
         </div>
 
-        <div class="space-y-4">
+        <div class="space-y-3">
           ${
             requiredReviewers.length > 0
               ? `
-            <div class="text-xs text-vscode-fg font-semibold uppercase tracking-wide">Required</div>
+            <div class="text-xs text-vscode-fg font-bold uppercase tracking-wider opacity-60 mb-2">Required</div>
             ${requiredReviewers.map((r) => this.renderReviewer(r)).join('')}
           `
               : ''
@@ -183,7 +186,7 @@ export class SidebarComponents {
           ${
             optionalReviewers.length > 0
               ? `
-            <div class="text-xs text-vscode-fg font-semibold uppercase tracking-wide ${requiredReviewers.length > 0 ? 'mt-6' : ''}">Optional</div>
+            <div class="text-xs text-vscode-fg font-bold uppercase tracking-wider opacity-60 ${requiredReviewers.length > 0 ? 'mt-6' : ''} mb-2">Optional</div>
             ${optionalReviewers.map((r) => this.renderReviewer(r)).join('')}
           `
               : ''
@@ -220,7 +223,7 @@ export class SidebarComponents {
 
   static renderSidebar(reviewers?: Reviewer[]): string {
     return `
-      <div class="w-96 bg-vscode-bg rounded-lg border border-vscode-border sidebar-card flex flex-col overflow-hidden">
+      <div class="w-96 bg-vscode-bg rounded-xl border border-vscode-border sidebar-card flex flex-col overflow-hidden modern-card">
         <div class="p-6 overflow-y-auto flex-1">
           ${this.renderReviewersSection(reviewers)}
           ${this.renderTagsSection()}

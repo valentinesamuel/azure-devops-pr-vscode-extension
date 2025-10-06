@@ -26,7 +26,15 @@ export class PipelineRunLayout {
               <span class="status-icon ${this.getStatusClass(pipelineRun)}">${this.getStatusIcon(pipelineRun)}</span>
               <h1 class="title">#${pipelineRun.buildNumber} • ${pipelineRun.pipelineName}</h1>
             </div>
-            <button class="run-new-btn" onclick="handleRunNew()">Run new</button>
+            <div class="header-buttons">
+              <button class="view-web-btn" onclick="handleRunNew()" title="View on Azure DevOps">
+                <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+                View on Web
+              </button>
+              <button class="run-new-btn" onclick="handleRunNew()">Run new</button>
+            </div>
           </div>
 
           <!-- Retention Notice -->
@@ -482,6 +490,42 @@ export class PipelineRunLayout {
 
       .run-new-btn:hover::before {
         left: 100%;
+      }
+
+      .header-buttons {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .view-web-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        color: var(--vscode-foreground);
+        border: 1.5px solid var(--vscode-panel-border);
+        padding: 10px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+      }
+
+      .view-web-btn:hover {
+        background: var(--vscode-list-hoverBackground);
+        border-color: #0078d4;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.15);
+      }
+
+      .view-web-btn .btn-icon {
+        transition: transform 0.2s ease;
+      }
+
+      .view-web-btn:hover .btn-icon {
+        transform: translateX(2px) translateY(-2px);
       }
 
       .run-new-btn:hover {

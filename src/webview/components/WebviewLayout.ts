@@ -58,6 +58,26 @@ ${WebviewStyles.getHtmlHead()}
       });
     }
 
+    function handleViewOnWeb() {
+      openInBrowser();
+    }
+
+    function copyBranchName(branchName) {
+      navigator.clipboard.writeText(branchName).then(() => {
+        // Visual feedback: briefly change the icon or show a tooltip
+        const btn = event.target.closest('.copy-branch-btn');
+        if (btn) {
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = '<svg class="w-3.5 h-3.5 text-vscode-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+          }, 1000);
+        }
+      }).catch(err => {
+        console.error('Failed to copy branch name:', err);
+      });
+    }
+
     function checkout() {
       vscode.postMessage({
         command: 'checkoutBranch',

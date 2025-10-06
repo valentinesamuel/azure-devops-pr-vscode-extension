@@ -60,20 +60,9 @@ export class TabNavigation {
 
       // Add click event listeners to all tabs - execute immediately since script is at bottom
       (function() {
-        console.log('=== INITIALIZING TAB NAVIGATION ===');
-        const overviewTab = document.getElementById('overviewTab');
-        const filesTab = document.getElementById('filesTab');
-        const updatesTab = document.getElementById('updatesTab');
-        const commitsTab = document.getElementById('commitsTab');
-        const conflictsTab = document.getElementById('conflictsTab');
+        
 
-        console.log('Tab elements found:', {
-          overviewTab: !!overviewTab,
-          filesTab: !!filesTab,
-          updatesTab: !!updatesTab,
-          commitsTab: !!commitsTab,
-          conflictsTab: !!conflictsTab
-        });
+   
 
         if (overviewTab) {
           overviewTab.addEventListener('click', () => {

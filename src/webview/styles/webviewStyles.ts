@@ -9,6 +9,7 @@ export class WebviewStyles {
                 'vscode-bg': 'var(--vscode-editor-background)',
                 'vscode-fg': 'var(--vscode-editor-foreground)',
                 'vscode-border': 'var(--vscode-panel-border)',
+                'vscode-hover': 'var(--vscode-list-hoverBackground)',
                 'vscode-input-bg': 'var(--vscode-input-background)',
                 'vscode-input-fg': 'var(--vscode-input-foreground)',
                 'vscode-input-border': 'var(--vscode-input-border)',
@@ -23,6 +24,11 @@ export class WebviewStyles {
                 'vscode-error': 'var(--vscode-testing-iconFailed)',
                 'vscode-warning': 'var(--vscode-testing-iconQueued)',
                 'vscode-info': 'var(--vscode-notificationsInfoIcon-foreground)',
+                'azure': '#0078d4',
+                'success-green': '#16c60c',
+              },
+              borderWidth: {
+                '1.5': '1.5px',
               }
             }
           }
@@ -105,6 +111,45 @@ export class WebviewStyles {
           box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
           background-color: var(--vscode-input-background);
           border-color: var(--vscode-input-border);
+        }
+
+        .view-web-icon {
+          transition: transform 0.2s ease;
+        }
+
+        button:hover .view-web-icon {
+          transform: translate(2px, -2px);
+        }
+
+        .modern-card {
+          animation: fadeInUp 0.4s ease-out;
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .content-card {
+          transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        .content-card:hover {
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .sidebar-card {
+          transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        .sidebar-card:hover {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
       </style>`;
   }

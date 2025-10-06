@@ -45,12 +45,6 @@ export class PrDetailsWebviewProvider {
                 uniqueName: reviewer.uniqueName,
                 imageUrl: reviewer.imageUrl,
               });
-              console.log(
-                '🔍 Found:',
-                reviewer.displayName,
-                'voted on behalf of team:',
-                team.displayName,
-              );
             }
           }
         });
@@ -197,11 +191,14 @@ export class PrDetailsWebviewProvider {
       async (message) => {
         switch (message.command) {
           case 'openInBrowser':
-            vscode.env.openExternal(
-              vscode.Uri.parse(
-                `https://dev.azure.com/your-org/your-project/_git/your-repo/pullrequest/${message.prId}`,
-              ),
-            );
+            if (pullRequest.repository) {
+              const prUrl = `https://dev.azure.com/${pullRequest.repository.organization}/${pullRequest.repository.project}/_git/${pullRequest.repository.repository}/pullrequest/${pullRequest.id}`;
+              vscode.env.openExternal(vscode.Uri.parse(prUrl));
+            } else {
+              vscode.window.showWarningMessage(
+                'Unable to open PR in browser: repository information not available',
+              );
+            }
             break;
           case 'checkoutBranch':
             vscode.window.showInformationMessage(`Checking out branch: ${message.branch}`);

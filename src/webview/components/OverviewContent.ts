@@ -22,30 +22,33 @@ export class OverviewContent {
     return `
       <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-medium text-vscode-fg">Description</h3>
-          ${isActive ? `<button id="editDescriptionBtn" onclick="editDescription('${escapedDescription}')" class="text-vscode-link text-sm hover:underline">Edit</button>` : ''}
+          <h3 class="text-lg font-semibold text-vscode-fg flex items-center gap-2">
+            <span class="text-xl">📝</span>
+            <span>Description</span>
+          </h3>
+          ${isActive ? `<button id="editDescriptionBtn" onclick="editDescription('${escapedDescription}')" class="text-azure text-sm font-medium hover:underline transition-all hover:text-azure/80">Edit</button>` : ''}
         </div>
-        <div id="descriptionDisplay" class="bg-vscode-input-bg rounded-lg border border-vscode-input-border p-6 text-sm text-vscode-fg opacity-70 whitespace-pre-wrap">
+        <div id="descriptionDisplay" class="bg-gradient-to-br from-vscode-input-bg to-vscode-input-bg/50 rounded-xl border border-vscode-input-border p-6 text-sm text-vscode-fg opacity-80 whitespace-pre-wrap shadow-sm">
           ${formattedDescription}
         </div>
         <div id="descriptionEdit" class="hidden space-y-3">
           <textarea
             id="descriptionTextarea"
             rows="8"
-            class="w-full bg-vscode-input-bg border border-vscode-input-border rounded-lg px-4 py-3 text-sm text-vscode-fg placeholder-vscode-fg opacity-60 focus:outline-none focus:border-vscode-link resize-none"
+            class="w-full bg-vscode-input-bg border border-vscode-input-border rounded-xl px-4 py-3 text-sm text-vscode-fg placeholder-vscode-fg opacity-60 focus:outline-none focus:border-azure focus:ring-2 focus:ring-azure/20 resize-none transition-all"
           ></textarea>
           <div class="flex justify-end space-x-2">
             <button
               id="cancelDescriptionBtn"
               onclick="cancelEditDescription('${escapedDescription}')"
-              class="px-4 py-2 text-sm text-vscode-fg opacity-60 hover:opacity-100 rounded transition-opacity"
+              class="px-4 py-2 text-sm text-vscode-fg opacity-60 hover:opacity-100 rounded-lg transition-all hover:bg-vscode-hover"
             >
               Cancel
             </button>
             <button
               id="saveDescriptionBtn"
               onclick="saveDescription()"
-              class="px-4 py-2 text-sm bg-vscode-button-bg text-vscode-button-fg hover:bg-vscode-button-hover rounded transition-colors"
+              class="px-4 py-2 text-sm bg-azure text-white hover:bg-azure/90 rounded-lg transition-all shadow-sm hover:shadow-md"
             >
               Save
             </button>
@@ -57,8 +60,10 @@ export class OverviewContent {
   static renderShowEverythingDropdown(): string {
     return `
       <div class="mb-8">
-        <button class="bg-vscode-input-bg border border-vscode-input-border rounded-lg px-4 py-3 text-sm text-vscode-fg opacity-70 hover:opacity-100 transition-colors">
-          Show everything (6) ▼
+        <button class="bg-gradient-to-r from-vscode-input-bg to-vscode-input-bg/50 border border-vscode-input-border rounded-xl px-5 py-3 text-sm text-vscode-fg font-medium hover:border-azure/50 hover:shadow-md transition-all flex items-center gap-2">
+          <span>Show everything</span>
+          <span class="bg-azure/20 text-azure px-2 py-0.5 rounded-full text-xs font-semibold">6</span>
+          <span class="ml-1">▼</span>
         </button>
       </div>`;
   }
@@ -69,7 +74,7 @@ export class OverviewContent {
     userProfile?: AzureDevOpsProfile,
   ): string {
     return `
-      <div class="flex-1 bg-vscode-bg rounded-lg border border-vscode-border content-card overflow-y-auto p-8">
+      <div class="flex-1 bg-vscode-bg rounded-xl border border-vscode-border content-card overflow-y-auto p-8 modern-card">
         ${StatusComponents.renderAbandonmentBanner(pullRequest)}
         ${StatusComponents.renderMergeInfo(pullRequest)}
         ${StatusComponents.renderChecksSection(pullRequest.statuses)}
