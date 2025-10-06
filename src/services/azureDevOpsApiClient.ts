@@ -286,6 +286,42 @@ export interface CommentThread {
   isDeleted?: boolean;
 }
 
+export interface GitChange {
+  changeType: 'add' | 'edit' | 'delete' | 'rename';
+  item: {
+    path: string;
+    gitObjectType?: 'blob' | 'tree' | 'commit';
+    url?: string;
+  };
+  sourceServerItem?: string; // For renames, the original path
+}
+
+export interface PullRequestIteration {
+  id: number;
+  description?: string;
+  author?: CommentIdentity;
+  createdDate: string;
+  updatedDate: string;
+  sourceRefCommit?: {
+    commitId: string;
+  };
+  targetRefCommit?: {
+    commitId: string;
+  };
+  commonRefCommit?: {
+    commitId: string;
+  };
+  hasMoreCommits?: boolean;
+}
+
+export interface PullRequestFileChange {
+  path: string;
+  changeType: 'add' | 'edit' | 'delete' | 'rename';
+  originalPath?: string; // For renames
+  additions?: number;
+  deletions?: number;
+}
+
 export class AzureDevOpsApiClient {
   private baseUrl: string;
   private organization: string;
@@ -1034,6 +1070,139 @@ export class AzureDevOpsApiClient {
         console.error(`Error fetching task logs: ${error.message}`);
       }
       return [];
+    }
+  }
+
+  /**
+   * Fetches all iterations for a pull request
+   * @param project - The project name
+   * @param repositoryId - The repository ID
+   * @param pullRequestId - The pull request ID
+   */
+  async getPullRequestIterations(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+  ): Promise<PullRequestIteration[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/iterations?api-version=7.1`;
+      console.log('Fetching PR iterations from:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('PR iterations fetch failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+        });
+        throw new Error(
+          `Failed to fetch PR iterations: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { value?: PullRequestIteration[] };
+      console.log(`Fetched ${data.value?.length || 0} iterations:`, data.value);
+      return data.value || [];
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching PR iterations: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches file changes for a pull request iteration
+   * @param project - The project name
+   * @param repositoryId - The repository ID
+   * @param pullRequestId - The pull request ID
+   * @param iterationId - Optional: The iteration ID (defaults to latest iteration)
+   */
+  async getPullRequestFileChanges(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+    iterationId?: number,
+  ): Promise<PullRequestFileChange[]> {
+    try {
+      // If no iteration ID provided, get the latest iteration
+      let targetIterationId = iterationId;
+      if (!targetIterationId) {
+        console.log('No iteration ID provided, fetching iterations...');
+        const iterations = await this.getPullRequestIterations(
+          project,
+          repositoryId,
+          pullRequestId,
+        );
+        if (iterations.length === 0) {
+          console.warn('No iterations found for PR');
+          return [];
+        }
+        // Get the latest iteration (highest ID)
+        targetIterationId = Math.max(...iterations.map((i) => i.id));
+        console.log(`Using iteration ID: ${targetIterationId}`);
+      }
+
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/iterations/${targetIterationId}/changes?api-version=7.1`;
+      console.log('Fetching PR file changes from:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('PR file changes fetch failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+        });
+        throw new Error(
+          `Failed to fetch PR file changes: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { changeEntries?: GitChange[] };
+      console.log('Raw API response:', JSON.stringify(data, null, 2));
+
+      const changes = data.changeEntries || [];
+      console.log(`Found ${changes.length} total changes (including folders)`);
+
+      // Transform to our simplified format
+      // Note: Some Azure DevOps responses don't include gitObjectType
+      // We filter out entries that are clearly folders (paths without file extensions or ending in /)
+      const fileChanges = changes
+        .filter((change) => {
+          // If gitObjectType is present, use it
+          if (change.item.gitObjectType) {
+            return change.item.gitObjectType === 'blob';
+          }
+          // Otherwise, assume it's a file if path doesn't end with /
+          // This is a heuristic since the API doesn't always provide gitObjectType
+          return change.item.path && !change.item.path.endsWith('/');
+        })
+        .map((change) => ({
+          path: change.item.path,
+          changeType: change.changeType,
+          originalPath: change.sourceServerItem,
+          // Note: Azure DevOps doesn't directly provide line counts in this endpoint
+          // You would need to fetch the actual diff to get additions/deletions
+        }));
+
+      console.log(`Filtered to ${fileChanges.length} file changes:`, fileChanges);
+      return fileChanges;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching PR file changes: ${error.message}`);
+        console.error('Full error:', error);
+      }
+      throw error;
     }
   }
 }

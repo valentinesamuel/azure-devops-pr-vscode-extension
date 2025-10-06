@@ -1,5 +1,128 @@
+import { PullRequestFileChange } from '../../services/azureDevOpsApiClient';
+
+interface FileTreeNode {
+  name: string;
+  path: string;
+  type: 'file' | 'folder';
+  changeType?: 'add' | 'edit' | 'delete' | 'rename';
+  children?: FileTreeNode[];
+  fileCount?: number;
+}
+
 export class TabContent {
-  static renderFilesContent(): string {
+  private static buildFileTree(fileChanges: PullRequestFileChange[]): FileTreeNode[] {
+    const root: FileTreeNode = {
+      name: '',
+      path: '',
+      type: 'folder',
+      children: [],
+    };
+
+    fileChanges.forEach((change) => {
+      const pathParts = change.path.split('/').filter((p) => p !== '' && p !== '.');
+      let currentNode = root;
+
+      pathParts.forEach((part, index) => {
+        const isFile = index === pathParts.length - 1;
+
+        // Find or create the child node
+        let childNode = currentNode.children?.find((child) => child.name === part);
+
+        if (!childNode) {
+          const fullPath = pathParts.slice(0, index + 1).join('/');
+          childNode = {
+            name: part,
+            path: fullPath,
+            type: isFile ? 'file' : 'folder',
+            changeType: isFile ? change.changeType : undefined,
+            children: isFile ? undefined : [],
+          };
+          currentNode.children!.push(childNode);
+        }
+
+        // Move to the next level if it's a folder
+        if (!isFile) {
+          currentNode = childNode;
+        }
+      });
+    });
+
+    // Calculate file counts for folders
+    function calculateFileCounts(node: FileTreeNode): number {
+      if (node.type === 'file') {
+        return 1;
+      }
+      let count = 0;
+      node.children?.forEach((child) => {
+        count += calculateFileCounts(child);
+      });
+      node.fileCount = count;
+      return count;
+    }
+
+    calculateFileCounts(root);
+
+    console.log('Root node children:', root.children);
+    return root.children || [];
+  }
+
+  private static renderFileTreeNode(node: FileTreeNode): string {
+    if (node.type === 'folder') {
+      return `
+        <div class="file-tree-item">
+          <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors" onclick="toggleFolder(this)">
+            <svg class="w-3 h-3 mr-2 folder-chevron transition-transform" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <svg class="w-4 h-4 mr-2 text-vscode-link" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+            </svg>
+            <span class="flex-1 text-left">${node.name}</span>
+            <span class="text-xs bg-vscode-success opacity-30 text-vscode-success px-1.5 py-0.5 rounded">${node.fileCount || 0}</span>
+          </button>
+          <div class="folder-content hidden ml-5">
+            ${node.children?.map((child) => this.renderFileTreeNode(child)).join('') || ''}
+          </div>
+        </div>
+      `;
+    } else {
+      const changeTypeStyles: Record<string, string> = {
+        add: 'bg-green-600 opacity-30 text-green-400',
+        edit: 'bg-blue-600 opacity-30 text-blue-400',
+        delete: 'bg-red-600 opacity-30 text-red-400',
+        rename: 'bg-yellow-600 opacity-30 text-yellow-400',
+      };
+
+      const changeTypeLabel: Record<string, string> = {
+        add: 'A',
+        edit: 'M',
+        delete: 'D',
+        rename: 'R',
+      };
+
+      return `
+        <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors file-item" onclick="selectFile(this, '${node.path}')">
+          <svg class="w-4 h-4 mr-2 text-vscode-fg opacity-60" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+          </svg>
+          <span class="flex-1 text-left">${node.name}</span>
+          ${node.changeType ? `<span class="text-xs px-1.5 py-0.5 rounded ${changeTypeStyles[node.changeType] || ''}">${changeTypeLabel[node.changeType] || node.changeType[0].toUpperCase()}</span>` : ''}
+        </button>
+      `;
+    }
+  }
+
+  static renderFilesContent(fileChanges: PullRequestFileChange[]): string {
+    console.log('TabContent.renderFilesContent called with:', {
+      fileChangesCount: fileChanges.length,
+      fileChanges: fileChanges,
+    });
+    const fileTree = this.buildFileTree(fileChanges);
+    console.log('Built file tree:', {
+      treeNodeCount: fileTree.length,
+      fileTree: fileTree,
+    });
+    const fileCount = fileChanges.length;
     return `
       <div id="filesContent" class="tab-content hidden h-full flex gap-4">
         <!-- Left Column - File Tree -->
@@ -8,98 +131,21 @@ export class TabContent {
           <div class="p-4 border-b border-vscode-border">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-sm font-medium text-vscode-fg">All Changes</h3>
-              <button class="bg-vscode-input-bg border border-vscode-input-border text-vscode-fg opacity-60 px-2 py-1 rounded text-xs hover:bg-vscode-border transition-colors flex items-center gap-1">
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd"/>
-                </svg>
-                Filter
-              </button>
             </div>
-            <div class="text-xs text-vscode-fg opacity-60">58 changed files</div>
-          </div>
-
-          <!-- File Conflict Alert -->
-          <div class="mx-4 mt-4 bg-yellow-600 opacity-20 border border-yellow-600 opacity-30 rounded p-3">
-            <div class="flex items-start">
-              <svg class="w-4 h-4 text-orange-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-              </svg>
-              <div class="flex-1">
-                <p class="text-xs text-orange-200">There are some conflict resolutions applied that aren't visible in the Files tab.</p>
-                <button class="text-xs text-orange-300 hover:underline mt-1">Review merge commit</button>
-              </div>
-            </div>
+            <div class="text-xs text-vscode-fg opacity-60">${fileCount} changed file${fileCount !== 1 ? 's' : ''}</div>
           </div>
 
           <!-- File Tree -->
           <div class="flex-1 overflow-y-auto p-4">
-            <div class="space-y-1">
-              <!-- kui_account_ms folder -->
-              <div class="file-tree-item">
-                <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors" onclick="toggleFolder(this)">
-                  <svg class="w-3 h-3 mr-2 folder-chevron transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                  </svg>
-                  <svg class="w-4 h-4 mr-2 text-vscode-link" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-                  </svg>
-                  <span class="flex-1 text-left">kui_account_ms</span>
-                  <span class="text-xs bg-vscode-success opacity-30 text-vscode-success px-1.5 py-0.5 rounded">1</span>
-                </button>
-                <div class="folder-content hidden ml-5">
-                  <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors file-item" onclick="selectFile(this, 'account-me-ci.yml')">
-                    <svg class="w-4 h-4 mr-2 text-vscode-fg opacity-60" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="flex-1 text-left">account-me-ci.yml</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- azureblobstorage.providers folder -->
-              <div class="file-tree-item">
-                <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors" onclick="toggleFolder(this)">
-                  <svg class="w-3 h-3 mr-2 folder-chevron transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                  </svg>
-                  <svg class="w-4 h-4 mr-2 text-vscode-link" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-                  </svg>
-                  <span class="flex-1 text-left">azureblobstorage.providers</span>
-                  <span class="text-xs bg-vscode-success opacity-30 text-vscode-success px-1.5 py-0.5 rounded">1</span>
-                </button>
-                <div class="folder-content hidden ml-5">
-                  <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors file-item" onclick="selectFile(this, 'azureblobstorage.providers.ts')">
-                    <svg class="w-4 h-4 mr-2 text-vscode-fg opacity-60" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="flex-1 text-left">azureblobstorage.providers.ts</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- client folder -->
-              <div class="file-tree-item">
-                <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors" onclick="toggleFolder(this)">
-                  <svg class="w-3 h-3 mr-2 folder-chevron transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                  </svg>
-                  <svg class="w-4 h-4 mr-2 text-vscode-link" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-                  </svg>
-                  <span class="flex-1 text-left">client</span>
-                  <span class="text-xs bg-vscode-success opacity-30 text-vscode-success px-1.5 py-0.5 rounded">2</span>
-                </button>
-                <div class="folder-content hidden ml-5">
-                  <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors file-item" onclick="selectFile(this, 'baseClient.httpClient.ts')">
-                    <svg class="w-4 h-4 mr-2 text-vscode-fg opacity-60" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="flex-1 text-left">baseClient.httpClient.ts</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+            ${
+              fileTree.length > 0
+                ? `<div class="space-y-1">
+              ${fileTree.map((node) => this.renderFileTreeNode(node)).join('')}
+            </div>`
+                : `<div class="text-center text-vscode-fg opacity-60 py-8">
+              <p class="text-sm">No files changed</p>
+            </div>`
+            }
           </div>
         </div>
 

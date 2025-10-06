@@ -5,7 +5,11 @@ import { TabNavigation } from './TabNavigation';
 import { OverviewContent } from './OverviewContent';
 import { TabContent } from './TabContent';
 import { ChecksPanel } from './ChecksPanel';
-import { CommentThread, AzureDevOpsProfile } from '../../services/azureDevOpsApiClient';
+import {
+  CommentThread,
+  AzureDevOpsProfile,
+  PullRequestFileChange,
+} from '../../services/azureDevOpsApiClient';
 import { ThreadComponents } from './ThreadComponents';
 
 export class WebviewLayout {
@@ -13,6 +17,7 @@ export class WebviewLayout {
     pullRequest: PullRequest,
     threads: CommentThread[] = [],
     userProfile?: AzureDevOpsProfile,
+    fileChanges?: PullRequestFileChange[],
   ): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -32,7 +37,7 @@ ${WebviewStyles.getHtmlHead()}
       ${OverviewContent.render(pullRequest, threads, userProfile)}
 
       <!-- Files Tab Content - Full Width -->
-      ${TabContent.renderFilesContent()}
+      ${TabContent.renderFilesContent(fileChanges || [])}
 
       ${TabContent.renderUpdatesContent()}
 

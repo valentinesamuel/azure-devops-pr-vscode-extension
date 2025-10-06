@@ -18,19 +18,15 @@ export class TabNavigation {
     return `
       // Tab switching functionality
       function showTab(tabName) {
-        console.log('=== showTab called with:', tabName);
 
         // Hide all tab contents
         const allTabContents = document.querySelectorAll('.tab-content');
-        console.log('All tab-content elements found:', allTabContents.length);
         allTabContents.forEach((content, index) => {
-          console.log(\`  Tab content \${index}: id="\${content.id}", hasHidden=\${content.classList.contains('hidden')}\`);
           content.classList.add('hidden');
         });
 
         // Remove active state from all tabs
         const allTabs = document.querySelectorAll('.tab-button');
-        console.log('All tab-button elements found:', allTabs.length);
         allTabs.forEach(tab => {
           tab.classList.remove('nav-indicator', 'text-vscode-link');
           tab.classList.add('text-vscode-fg', 'opacity-60');
@@ -38,12 +34,8 @@ export class TabNavigation {
 
         // Show selected tab content
         const targetContent = document.getElementById(tabName + 'Content');
-        console.log('Target content element:', targetContent);
-        console.log('Target content ID:', tabName + 'Content');
         if (targetContent) {
-          console.log('Removing hidden from:', tabName + 'Content');
           targetContent.classList.remove('hidden');
-          console.log('Content now has hidden?', targetContent.classList.contains('hidden'));
         } else {
           console.error('Could not find element with ID:', tabName + 'Content');
         }
@@ -53,9 +45,7 @@ export class TabNavigation {
         if (activeTab) {
           activeTab.classList.add('nav-indicator', 'text-vscode-link');
           activeTab.classList.remove('text-vscode-fg', 'opacity-60');
-          console.log('Active tab updated:', tabName + 'Tab');
         }
-        console.log('=== showTab complete ===');
       }
 
       // Add click event listeners to all tabs - execute immediately since script is at bottom
@@ -95,7 +85,6 @@ export class TabNavigation {
           });
         }
 
-        console.log('=== TAB NAVIGATION INITIALIZED ===');
       })();
     `;
   }

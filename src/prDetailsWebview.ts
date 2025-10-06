@@ -5,6 +5,7 @@ import {
   AzureDevOpsApiClient,
   CommentThread,
   AzureDevOpsProfile,
+  PullRequestFileChange,
 } from './services/azureDevOpsApiClient';
 import { AuthService } from './services/authService';
 
@@ -103,6 +104,7 @@ export class PrDetailsWebviewProvider {
 
     // Fetch threads and statuses from Azure DevOps
     let threads: CommentThread[] = [];
+    let fileChanges: PullRequestFileChange[] = [];
     let userProfile = authService.getUserProfileService().getStoredProfile();
     try {
       if (pullRequest.repository) {
@@ -126,6 +128,27 @@ export class PrDetailsWebviewProvider {
             pullRequest.id,
           );
           pullRequest.statuses = statuses;
+
+          // Fetch file changes
+          try {
+            console.log('Fetching file changes for PR:', {
+              project: pullRequest.repository.project,
+              repository: pullRequest.repository.repository,
+              prId: pullRequest.id,
+            });
+            fileChanges = await apiClient.getPullRequestFileChanges(
+              pullRequest.repository.project,
+              pullRequest.repository.repository,
+              pullRequest.id,
+            );
+            console.log(`Fetched ${fileChanges.length} file changes for PR #${pullRequest.id}`);
+            console.log('File changes:', JSON.stringify(fileChanges, null, 2));
+          } catch (fileError) {
+            console.error('Failed to fetch PR file changes:', fileError);
+            if (fileError instanceof Error) {
+              console.error('Error details:', fileError.message);
+            }
+          }
 
           // Add a synthetic "PR created" thread since Azure DevOps doesn't always include it in threads
           // Get the current user profile to see if they are the creator
@@ -184,6 +207,7 @@ export class PrDetailsWebviewProvider {
       pullRequest,
       threads,
       userProfile,
+      fileChanges,
     );
 
     // Handle messages from the webview
@@ -260,7 +284,8 @@ export class PrDetailsWebviewProvider {
     pullRequest: PullRequest,
     threads: CommentThread[],
     userProfile?: AzureDevOpsProfile,
+    fileChanges?: PullRequestFileChange[],
   ): string {
-    return WebviewLayout.render(pullRequest, threads, userProfile);
+    return WebviewLayout.render(pullRequest, threads, userProfile, fileChanges);
   }
 }
