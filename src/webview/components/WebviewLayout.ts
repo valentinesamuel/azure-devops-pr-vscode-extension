@@ -93,9 +93,21 @@ ${WebviewStyles.getHtmlHead()}
 
     // File Tree Functions
     function toggleFolder(button) {
+      // Clear active state from any selected files and folders
+      document.querySelectorAll('.file-item').forEach(item => {
+        item.classList.remove('bg-vscode-list-active-bg', 'selected-file');
+      });
+      document.querySelectorAll('.folder-item').forEach(item => {
+        item.classList.remove('bg-vscode-list-active-bg', 'selected-folder');
+      });
+
+      // Add active state to clicked folder
+      button.classList.add('bg-vscode-list-active-bg', 'selected-folder');
+
       const folderContent = button.parentElement.querySelector('.folder-content');
       const chevron = button.querySelector('.folder-chevron');
 
+      // Toggle folder expansion
       if (folderContent.classList.contains('hidden')) {
         folderContent.classList.remove('hidden');
         chevron.style.transform = 'rotate(90deg)';
@@ -103,24 +115,84 @@ ${WebviewStyles.getHtmlHead()}
         folderContent.classList.add('hidden');
         chevron.style.transform = 'rotate(0deg)';
       }
+
+      // Show folder details on the right
+      showFolderDetails(button);
+    }
+
+    function showFolderDetails(folderButton) {
+      const folderName = folderButton.querySelector('span.flex-1').textContent;
+      const folderContent = folderButton.parentElement.querySelector('.folder-content');
+
+      // Collect all files in this folder (including nested)
+      const files = [];
+      function collectFiles(element) {
+        const fileButtons = element.querySelectorAll('.file-item');
+        fileButtons.forEach(fileBtn => {
+          const fileName = fileBtn.querySelector('span.flex-1').textContent;
+          const filePath = fileBtn.getAttribute('onclick').match(/'([^']+)'/)[1];
+          const changeTypeBadge = fileBtn.querySelector('span.rounded');
+          const changeType = changeTypeBadge ? changeTypeBadge.textContent : '';
+          const changeClass = changeTypeBadge ? changeTypeBadge.className : '';
+          files.push({ name: fileName, path: filePath, changeType, changeClass });
+        });
+      }
+
+      if (folderContent) {
+        collectFiles(folderContent);
+      }
+
+      // Hide other views
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('diffView').classList.add('hidden');
+
+      // Show folder view
+      const folderView = document.getElementById('folderView');
+      folderView.classList.remove('hidden');
+      folderView.classList.add('flex');
+
+      // Update folder details
+      document.getElementById('folderName').textContent = folderName;
+      document.getElementById('folderFileCount').textContent = files.length + ' file' + (files.length !== 1 ? 's' : '');
+
+      // Populate files list
+      const filesList = document.getElementById('folderFilesList');
+      filesList.innerHTML = files.map(file => \`
+        <div class="flex items-center justify-between p-3 bg-vscode-input-bg rounded border border-vscode-input-border hover:bg-vscode-list-hover-bg transition-colors cursor-pointer" onclick="selectFile(this, '\${file.path}')">
+          <div class="flex items-center space-x-3 flex-1">
+            <svg class="w-4 h-4 text-vscode-fg opacity-70" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+            </svg>
+            <span class="text-sm text-vscode-fg">\${file.name}</span>
+          </div>
+          \${file.changeType ? \`<span class="text-xs px-2 py-0.5 rounded font-semibold \${file.changeClass}">\${file.changeType}</span>\` : ''}
+          <button class="ml-3 px-3 py-1 text-xs text-vscode-link hover:underline">View</button>
+        </div>
+      \`).join('');
     }
 
     function selectFile(button, fileName) {
-      // Remove active state from all file items
+      // Remove active state from all file items and folders
       document.querySelectorAll('.file-item').forEach(item => {
-        item.classList.remove('bg-vscode-info', 'opacity-20', 'text-vscode-fg');
+        item.classList.remove('bg-vscode-list-active-bg', 'selected-file');
+      });
+      document.querySelectorAll('.folder-item').forEach(item => {
+        item.classList.remove('bg-vscode-list-active-bg', 'selected-folder');
       });
 
       // Add active state to selected file
-      button.classList.add('bg-vscode-info', 'opacity-20', 'text-vscode-fg');
+      button.classList.add('bg-vscode-list-active-bg', 'selected-file');
 
-      // Show diff view
+      // Hide other views
       const emptyState = document.getElementById('emptyState');
       const diffView = document.getElementById('diffView');
+      const folderView = document.getElementById('folderView');
       const fileNameElement = document.getElementById('fileName');
 
-      if (emptyState && diffView && fileNameElement) {
+      if (emptyState && diffView && folderView && fileNameElement) {
         emptyState.classList.add('hidden');
+        folderView.classList.add('hidden');
+        folderView.classList.remove('flex');
         diffView.classList.remove('hidden');
         fileNameElement.textContent = fileName;
       }

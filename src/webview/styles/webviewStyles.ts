@@ -10,6 +10,8 @@ export class WebviewStyles {
                 'vscode-fg': 'var(--vscode-editor-foreground)',
                 'vscode-border': 'var(--vscode-panel-border)',
                 'vscode-hover': 'var(--vscode-list-hoverBackground)',
+                'vscode-list-hover-bg': 'var(--vscode-list-hoverBackground)',
+                'vscode-list-active-bg': 'var(--vscode-list-activeSelectionBackground)',
                 'vscode-input-bg': 'var(--vscode-input-background)',
                 'vscode-input-fg': 'var(--vscode-input-foreground)',
                 'vscode-input-border': 'var(--vscode-input-border)',
@@ -138,6 +140,23 @@ export class WebviewStyles {
 
         .content-card {
           transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        /* File tree selected state - ensure text remains readable */
+        .file-item.selected-file,
+        .folder-item.selected-folder {
+          background-color: var(--vscode-list-activeSelectionBackground) !important;
+        }
+
+        .file-item.selected-file span,
+        .folder-item.selected-folder span {
+          color: var(--vscode-list-activeSelectionForeground) !important;
+        }
+
+        .file-item.selected-file svg,
+        .folder-item.selected-folder svg {
+          color: var(--vscode-list-activeSelectionForeground) !important;
+          opacity: 1 !important;
         }
 
         .content-card:hover {

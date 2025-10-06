@@ -70,15 +70,14 @@ export class TabContent {
     if (node.type === 'folder') {
       return `
         <div class="file-tree-item">
-          <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors" onclick="toggleFolder(this)">
-            <svg class="w-3 h-3 mr-2 folder-chevron transition-transform" fill="currentColor" viewBox="0 0 20 20">
+          <button class="w-full flex items-center px-2 py-1.5 hover:bg-vscode-list-hover-bg rounded text-sm transition-colors folder-item" onclick="toggleFolder(this)">
+            <svg class="w-3 h-3 mr-2 folder-chevron transition-transform text-vscode-fg" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
             </svg>
-            <svg class="w-4 h-4 mr-2 text-vscode-link" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-4 h-4 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
             </svg>
-            <span class="flex-1 text-left">${node.name}</span>
-            <span class="text-xs bg-vscode-success opacity-30 text-vscode-success px-1.5 py-0.5 rounded">${node.fileCount || 0}</span>
+            <span class="flex-1 text-left font-medium text-vscode-fg">${node.name}</span>
           </button>
           <div class="folder-content hidden ml-5">
             ${node.children?.map((child) => this.renderFileTreeNode(child)).join('') || ''}
@@ -87,10 +86,11 @@ export class TabContent {
       `;
     } else {
       const changeTypeStyles: Record<string, string> = {
-        add: 'bg-green-600 opacity-30 text-green-400',
-        edit: 'bg-blue-600 opacity-30 text-blue-400',
-        delete: 'bg-red-600 opacity-30 text-red-400',
-        rename: 'bg-yellow-600 opacity-30 text-yellow-400',
+        add: 'bg-green-500 bg-opacity-20 text-green-300 border border-green-500 border-opacity-30',
+        edit: 'bg-blue-500 bg-opacity-20 text-blue-300 border border-blue-500 border-opacity-30',
+        delete: 'bg-red-500 bg-opacity-20 text-red-300 border border-red-500 border-opacity-30',
+        rename:
+          'bg-yellow-500 bg-opacity-20 text-yellow-300 border border-yellow-500 border-opacity-30',
       };
 
       const changeTypeLabel: Record<string, string> = {
@@ -101,12 +101,12 @@ export class TabContent {
       };
 
       return `
-        <button class="w-full flex items-center p-2 hover:bg-vscode-input-bg rounded text-sm text-vscode-fg opacity-60 hover:text-vscode-fg transition-colors file-item" onclick="selectFile(this, '${node.path}')">
-          <svg class="w-4 h-4 mr-2 text-vscode-fg opacity-60" fill="currentColor" viewBox="0 0 20 20">
+        <button class="w-full flex items-center px-2 py-1.5 hover:bg-vscode-list-hover-bg rounded text-sm transition-colors file-item group" onclick="selectFile(this, '${node.path}')">
+          <svg class="w-4 h-4 mr-2 text-vscode-fg opacity-70 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
           </svg>
-          <span class="flex-1 text-left">${node.name}</span>
-          ${node.changeType ? `<span class="text-xs px-1.5 py-0.5 rounded ${changeTypeStyles[node.changeType] || ''}">${changeTypeLabel[node.changeType] || node.changeType[0].toUpperCase()}</span>` : ''}
+          <span class="flex-1 text-left text-vscode-fg">${node.name}</span>
+          ${node.changeType ? `<span class="text-xs px-2 py-0.5 rounded font-semibold ${changeTypeStyles[node.changeType] || ''}">${changeTypeLabel[node.changeType] || node.changeType[0].toUpperCase()}</span>` : ''}
         </button>
       `;
     }
@@ -158,7 +158,28 @@ export class TabContent {
                 <svg class="w-16 h-16 mx-auto mb-4 text-vscode-border" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
                 </svg>
-                <p class="text-sm">Select a file to view diff</p>
+                <p class="text-sm">Select a file or folder to view details</p>
+              </div>
+            </div>
+
+            <!-- Folder View (Initially Hidden) -->
+            <div id="folderView" class="h-full flex-col hidden">
+              <!-- Folder Header -->
+              <div class="p-4 border-b border-vscode-border bg-vscode-input-bg">
+                <div class="flex items-center space-x-3">
+                  <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+                  </svg>
+                  <span id="folderName" class="text-sm font-medium text-vscode-fg"></span>
+                  <span id="folderFileCount" class="text-xs text-vscode-fg opacity-60"></span>
+                </div>
+              </div>
+
+              <!-- Folder Files List -->
+              <div class="flex-1 overflow-y-auto p-4">
+                <div id="folderFilesList" class="space-y-2">
+                  <!-- Files will be populated here -->
+                </div>
               </div>
             </div>
 
