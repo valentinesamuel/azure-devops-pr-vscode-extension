@@ -87,25 +87,18 @@ export class StageDetailsWebviewProvider {
       });
 
       // Fetch jobs for this stage
-      console.log(
-        `Calling getStageJobs with project="${project}", buildId=${buildId}, stageId="${stage.id}"`,
-      );
       const jobs = await apiClient.getStageJobs(project, buildId, stage.id);
-      console.log(`Fetched ${jobs.length} jobs for stage ${stage.name}:`, jobs);
 
       // Fetch tasks for each job
       const jobsWithTasks: StageJob[] = await Promise.all(
         jobs.map(async (job) => {
           const tasks = await apiClient.getJobTasks(project, buildId, job.id);
-          console.log(`Fetched ${tasks.length} tasks for job ${job.name}:`, tasks);
 
           // Fetch logs for all tasks
           const tasksWithLogs: StageTask[] = await Promise.all(
             tasks.map(async (task) => {
               if (task.logId) {
-                console.log(`Fetching logs for task ${task.name}, logId: ${task.logId}`);
                 const logs = await apiClient.getTaskLogs(project, buildId, task.logId);
-                console.log(`Fetched ${logs.length} log lines for task ${task.name}`);
                 return { ...task, logs };
               }
               return { ...task, logs: [] };

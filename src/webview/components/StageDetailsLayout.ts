@@ -177,10 +177,7 @@ export class StageDetailsLayout {
             const duration = calculateDuration(task);
 
             const logsHtml = task.logs && task.logs.length > 0
-              ? task.logs.map((logLine, index) => {
-                  const formatted = formatLogLine(logLine);
-                  return \`<div class="flex hover:bg-white hover:bg-opacity-5"><span class="opacity-30 select-none w-12 text-right flex-shrink-0 text-xs pr-3">\${index + 1}</span><span class="whitespace-nowrap">\${formatted}</span></div>\`;
-                }).join('')
+              ? formatLogsWithJson(task.logs)
               : \`<div class="flex"><span class="opacity-30 select-none w-12 text-right flex-shrink-0 text-xs pr-3">1</span><span class="opacity-50">No logs available for this task</span></div>\`;
 
             rightPanel.innerHTML = \`
@@ -243,6 +240,92 @@ export class StageDetailsLayout {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+          }
+
+          function formatLogsWithJson(logs) {
+            console.log('formatLogsWithJson called with', logs.length, 'logs');
+            console.log('First 5 log lines:', logs.slice(0, 5));
+            let result = '';
+            let inJson = false;
+            let depth = 0;
+
+            for (let i = 0; i < logs.length; i++) {
+              const logLine = logs[i];
+              // Remove ANSI codes and timestamp, but preserve leading whitespace
+              let cleanLine = logLine.replace(/\\[([0-9;]+)m/g, '');
+              cleanLine = cleanLine.replace(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z\\s/, '');
+              // Only trim trailing whitespace, not leading
+              cleanLine = cleanLine.trimEnd();
+
+              // Check if we're starting a JSON block (trim for detection only)
+              const trimmedLine = cleanLine.trim();
+              if (!inJson && (trimmedLine.startsWith('{') || trimmedLine.startsWith('['))) {
+                console.log('Starting JSON block at line', i, ':', trimmedLine.substring(0, 50));
+                inJson = true;
+                depth = 0;
+              }
+
+              if (inJson) {
+                // Use formatJsonLine which preserves Azure DevOps indentation
+                const formatted = formatJsonLine(logLine);
+                result += \`<div class="flex hover:bg-white hover:bg-opacity-5"><span class="opacity-30 select-none w-12 text-right flex-shrink-0 text-xs pr-3">\${i + 1}</span><span class="whitespace-nowrap">\${formatted}</span></div>\`;
+
+                // Track depth to know when JSON ends
+                const openBraces = (trimmedLine.match(/{/g) || []).length;
+                const openBrackets = (trimmedLine.match(/\\[/g) || []).length;
+                const closeBraces = (trimmedLine.match(/}/g) || []).length;
+                const closeBrackets = (trimmedLine.match(/\\]/g) || []).length;
+
+                depth += (openBraces + openBrackets) - (closeBraces + closeBrackets);
+
+                // Exit JSON mode if we're back at depth 0 and line ends with closing bracket/brace
+                if (depth <= 0 && (trimmedLine.endsWith('}') || trimmedLine.endsWith(']'))) {
+                  inJson = false;
+                  depth = 0;
+                }
+              } else {
+                // Regular line - use normal formatting
+                const formatted = formatLogLine(logLine);
+                result += \`<div class="flex hover:bg-white hover:bg-opacity-5"><span class="opacity-30 select-none w-12 text-right flex-shrink-0 text-xs pr-3">\${i + 1}</span><span class="whitespace-nowrap">\${formatted}</span></div>\`;
+              }
+            }
+
+            return result;
+          }
+
+          function formatJsonLine(logLine) {
+            // Special formatting for JSON lines - preserve leading whitespace
+            let line = logLine.replace(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z\\s/, '');
+            // Remove ANSI codes
+            line = line.replace(/\\[([0-9;]+)m/g, '');
+            // Only trim trailing whitespace
+            line = line.trimEnd();
+
+            // Convert leading spaces to non-breaking spaces before escaping
+            const leadingSpaces = line.match(/^\\s*/)[0];
+            const content = line.substring(leadingSpaces.length);
+            const nbspIndent = leadingSpaces.replace(/ /g, '&nbsp;');
+
+            line = escapeHtml(content);
+
+            // Syntax highlighting for JSON
+            // Highlight property names (keys)
+            line = line.replace(/"([^"]+)":/g, '<span style="color: #79c0ff;">"$1"</span>:');
+
+            // Highlight string values
+            line = line.replace(/: "([^"]*)"/g, ': <span style="color: #a5d6ff;">"$1"</span>');
+
+            // Highlight numbers
+            line = line.replace(/: (-?\\d+\\.?\\d*),?$/g, ': <span style="color: #79c0ff;">$1</span>');
+
+            // Highlight booleans
+            line = line.replace(/: (true|false)/g, ': <span style="color: #ff7b72;">$1</span>');
+
+            // Highlight null
+            line = line.replace(/: (null)/g, ': <span style="color: #8b949e;">$1</span>');
+
+            // Return with preserved indentation
+            return nbspIndent + line;
           }
 
           function formatLogLine(logLine) {
