@@ -62,7 +62,6 @@ export class TabContent {
 
     calculateFileCounts(root);
 
-    console.log('Root node children:', root.children);
     return root.children || [];
   }
 
@@ -101,7 +100,7 @@ export class TabContent {
       };
 
       return `
-        <button class="w-full flex items-center px-2 py-1.5 hover:bg-vscode-list-hover-bg rounded text-sm transition-colors file-item group" onclick="selectFile(this, '${node.path}')">
+        <button class="w-full flex items-center px-2 py-1.5 hover:bg-vscode-list-hover-bg rounded text-sm transition-colors file-item group" onclick="viewFileDiff('${node.path}', '${node.changeType}', '${node.name}')">
           <svg class="w-4 h-4 mr-2 text-vscode-fg opacity-70 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
           </svg>
@@ -113,15 +112,8 @@ export class TabContent {
   }
 
   static renderFilesContent(fileChanges: PullRequestFileChange[]): string {
-    console.log('TabContent.renderFilesContent called with:', {
-      fileChangesCount: fileChanges.length,
-      fileChanges: fileChanges,
-    });
     const fileTree = this.buildFileTree(fileChanges);
-    console.log('Built file tree:', {
-      treeNodeCount: fileTree.length,
-      fileTree: fileTree,
-    });
+
     const fileCount = fileChanges.length;
     return `
       <div id="filesContent" class="tab-content hidden h-full flex gap-4">

@@ -131,18 +131,11 @@ export class PrDetailsWebviewProvider {
 
           // Fetch file changes
           try {
-            console.log('Fetching file changes for PR:', {
-              project: pullRequest.repository.project,
-              repository: pullRequest.repository.repository,
-              prId: pullRequest.id,
-            });
             fileChanges = await apiClient.getPullRequestFileChanges(
               pullRequest.repository.project,
               pullRequest.repository.repository,
               pullRequest.id,
             );
-            console.log(`Fetched ${fileChanges.length} file changes for PR #${pullRequest.id}`);
-            console.log('File changes:', JSON.stringify(fileChanges, null, 2));
           } catch (fileError) {
             console.error('Failed to fetch PR file changes:', fileError);
             if (fileError instanceof Error) {
@@ -268,6 +261,122 @@ export class PrDetailsWebviewProvider {
             } catch (error) {
               vscode.window.showErrorMessage(
                 `Failed to update PR description: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              );
+            }
+            break;
+          case 'getFileDiff':
+            try {
+              if (pullRequest.repository) {
+                const pat = await authService.getPersonalAccessToken();
+                if (pat) {
+                  const apiClient = new AzureDevOpsApiClient({
+                    organization: pullRequest.repository.organization,
+                    pat,
+                  });
+
+                  // Get iterations to find the latest one
+                  const iterations = await apiClient.getPullRequestIterations(
+                    pullRequest.repository.project,
+                    pullRequest.repository.repository,
+                    pullRequest.id,
+                  );
+
+                  if (iterations.length > 0) {
+                    const latestIteration = iterations[iterations.length - 1];
+
+                    // Get the source and target commit SHAs from the iteration
+                    const sourceCommit = latestIteration.sourceRefCommit?.commitId;
+                    const targetCommit = latestIteration.targetRefCommit?.commitId;
+
+                    // Fetch both versions of the file
+                    let oldContent = '';
+                    let newContent = '';
+
+                    try {
+                      if (targetCommit && message.changeType !== 'add') {
+                        oldContent = await apiClient.getFileContent(
+                          pullRequest.repository.project,
+                          pullRequest.repository.repository,
+                          message.filePath,
+                          targetCommit,
+                        );
+                      }
+                    } catch (e) {
+                      console.log('Could not fetch old content (file might be new)');
+                    }
+
+                    try {
+                      if (sourceCommit && message.changeType !== 'delete') {
+                        newContent = await apiClient.getFileContent(
+                          pullRequest.repository.project,
+                          pullRequest.repository.repository,
+                          message.filePath,
+                          sourceCommit,
+                        );
+                      }
+                    } catch (e) {
+                      console.log('Could not fetch new content (file might be deleted)');
+                    }
+
+                    // Send diff back to webview
+                    panel.webview.postMessage({
+                      command: 'fileDiffResponse',
+                      filePath: message.filePath,
+                      oldContent,
+                      newContent,
+                      changeType: message.changeType,
+                      fileIndex: message.fileIndex,
+                      fileName: message.fileName,
+                      error: false,
+                    });
+                  } else {
+                    // No iterations found - send error
+                    panel.webview.postMessage({
+                      command: 'fileDiffResponse',
+                      filePath: message.filePath,
+                      fileIndex: message.fileIndex,
+                      fileName: message.fileName,
+                      error: true,
+                      errorMessage: 'No PR iterations found',
+                    });
+                  }
+                } else {
+                  // No PAT - send error
+                  panel.webview.postMessage({
+                    command: 'fileDiffResponse',
+                    filePath: message.filePath,
+                    fileIndex: message.fileIndex,
+                    fileName: message.fileName,
+                    error: true,
+                    errorMessage: 'Authentication required',
+                  });
+                }
+              } else {
+                // No repository info - send error
+                panel.webview.postMessage({
+                  command: 'fileDiffResponse',
+                  filePath: message.filePath,
+                  fileIndex: message.fileIndex,
+                  fileName: message.fileName,
+                  error: true,
+                  errorMessage: 'Repository information not available',
+                });
+              }
+            } catch (error) {
+              console.error('Error fetching file diff:', error);
+
+              // Send error to webview
+              panel.webview.postMessage({
+                command: 'fileDiffResponse',
+                filePath: message.filePath,
+                fileIndex: message.fileIndex,
+                fileName: message.fileName,
+                error: true,
+                errorMessage: error instanceof Error ? error.message : 'Unknown error occurred',
+              });
+
+              vscode.window.showErrorMessage(
+                `Failed to fetch file diff: ${error instanceof Error ? error.message : 'Unknown error'}`,
               );
             }
             break;

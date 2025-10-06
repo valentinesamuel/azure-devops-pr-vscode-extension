@@ -124,79 +124,446 @@ ${WebviewStyles.getHtmlHead()}
       const folderName = folderButton.querySelector('span.flex-1').textContent;
       const folderContent = folderButton.parentElement.querySelector('.folder-content');
 
-      // Collect all files in this folder (including nested)
-      const files = [];
-      function collectFiles(element) {
-        const fileButtons = element.querySelectorAll('.file-item');
-        fileButtons.forEach(fileBtn => {
-          const fileName = fileBtn.querySelector('span.flex-1').textContent;
-          const filePath = fileBtn.getAttribute('onclick').match(/'([^']+)'/)[1];
-          const changeTypeBadge = fileBtn.querySelector('span.rounded');
-          const changeType = changeTypeBadge ? changeTypeBadge.textContent : '';
-          const changeClass = changeTypeBadge ? changeTypeBadge.className : '';
-          files.push({ name: fileName, path: filePath, changeType, changeClass });
+      // Show loading state immediately
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('folderView').classList.add('hidden');
+      document.getElementById('folderView').classList.remove('flex');
+
+      const diffView = document.getElementById('diffView');
+      diffView.classList.remove('hidden');
+
+      // Update header with folder name
+      document.getElementById('fileName').textContent = folderName;
+
+      // Show loading state
+      const diffContent = diffView.querySelector('.flex-1.overflow-y-auto');
+      diffContent.innerHTML = \`
+        <div class="flex items-center justify-center h-full text-vscode-fg opacity-60">
+          <div class="flex flex-col items-center space-y-4">
+            <svg class="animate-spin h-8 w-8" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <div class="text-center">
+              <p class="text-sm font-medium">Loading folder contents</p>
+              <p class="text-xs opacity-60 mt-1">Preparing files for \${folderName}</p>
+            </div>
+          </div>
+        </div>
+      \`;
+
+      // Use setTimeout to allow UI to update before processing
+      setTimeout(() => {
+        try {
+          // Collect all files in this folder (including nested)
+          const files = [];
+
+          function collectFiles(element) {
+            if (!element) {
+              return;
+            }
+
+            const fileButtons = element.querySelectorAll('.file-item');
+
+            fileButtons.forEach(fileBtn => {
+              const fileNameSpan = fileBtn.querySelector('span.flex-1');
+              if (!fileNameSpan) {
+                return;
+              }
+
+              const onclickAttr = fileBtn.getAttribute('onclick');
+
+              if (!onclickAttr) {
+                return;
+              }
+
+              // Need to escape backslashes because this is inside a template literal
+              const matches = onclickAttr.match(/viewFileDiff\\('([^']+)',\\s*'([^']+)',\\s*'([^']+)'\\)/);
+
+              if (matches) {
+                const filePath = matches[1];
+                const changeType = matches[2];
+                const name = matches[3];
+
+                // Get change type badge info
+                const badge = fileBtn.querySelector('span.rounded');
+                const changeTypeLabel = badge ? badge.textContent : '';
+                const changeTypeClass = badge ? badge.className : '';
+
+                files.push({ name, path: filePath, changeType, changeTypeLabel, changeTypeClass });
+              }
+            });
+          }
+
+          if (folderContent) {
+            collectFiles(folderContent);
+          }
+
+          if (files.length === 0) {
+            // Show empty state
+            diffContent.innerHTML = \`
+              <div class="flex items-center justify-center h-full text-vscode-fg opacity-60">
+                <div class="text-center">
+                  <svg class="w-16 h-16 mx-auto mb-4 text-vscode-border" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+                  </svg>
+                  <p class="text-sm">No files in this folder</p>
+                </div>
+              </div>
+            \`;
+            return;
+          }
+
+          // Update header with file count
+          document.getElementById('fileName').textContent = folderName + ' (' + files.length + ' file' + (files.length !== 1 ? 's' : '') + ')';
+
+          // Show accordion with loading states
+          diffContent.innerHTML = renderFileAccordions(files);
+
+          // Request diffs for all files
+          loadFolderDiffs(files);
+        } catch (error) {
+          // Show error state
+          diffContent.innerHTML = \`
+            <div class="flex items-center justify-center h-full p-8">
+              <div class="max-w-md w-full">
+                <div class="flex items-start space-x-3 text-vscode-error bg-red-500 bg-opacity-10 border border-red-500 border-opacity-30 rounded p-4">
+                  <svg class="w-6 h-6 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                  </svg>
+                  <div class="flex-1">
+                    <p class="text-sm font-medium">Failed to load folder</p>
+                    <p class="text-xs mt-1 opacity-80">Could not process folder contents: \${error.message || 'Unknown error'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          \`;
+          console.error('Error loading folder details:', error);
+        }
+      }, 100);
+    }
+
+    function renderFileAccordions(files) {
+      let html = '<div class="space-y-2 p-4">';
+
+      files.forEach((file, index) => {
+        html += \`
+          <div class="border border-vscode-border rounded bg-vscode-bg" id="file-accordion-\${index}">
+            <button class="w-full flex items-center justify-between p-3 hover:bg-vscode-list-hover-bg transition-colors" onclick="toggleFileAccordion(\${index})">
+              <div class="flex items-center space-x-3 flex-1">
+                <svg class="w-3 h-3 accordion-chevron transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <svg class="w-4 h-4 text-vscode-fg opacity-70" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm font-medium text-vscode-fg">\${file.name}</span>
+                \${file.changeTypeLabel ? \`<span class="text-xs px-2 py-0.5 rounded font-semibold \${file.changeTypeClass}">\${file.changeTypeLabel}</span>\` : ''}
+              </div>
+              <span class="text-xs text-vscode-fg opacity-60 mr-2">\${file.path}</span>
+            </button>
+            <div class="accordion-content hidden border-t border-vscode-border" id="file-content-\${index}">
+              <div class="p-4 flex items-center justify-center text-vscode-fg opacity-60">
+                <div class="flex items-center space-x-2">
+                  <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span class="text-sm">Loading diff...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        \`;
+      });
+
+      html += '</div>';
+      return html;
+    }
+
+    function toggleFileAccordion(index) {
+      const content = document.getElementById('file-content-' + index);
+      const chevron = document.querySelector('#file-accordion-' + index + ' .accordion-chevron');
+
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        chevron.style.transform = 'rotate(90deg)';
+      } else {
+        content.classList.add('hidden');
+        chevron.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    function loadFolderDiffs(files) {
+      files.forEach((file, index) => {
+        // Request diff for this file
+        vscode.postMessage({
+          command: 'getFileDiff',
+          filePath: file.path,
+          changeType: file.changeType,
+          fileIndex: index,
+          fileName: file.name
+        });
+      });
+
+      // Listen for responses
+      const messageHandler = (event) => {
+        const message = event.data;
+
+        if (message.command === 'fileDiffResponse') {
+          const fileIndex = message.fileIndex;
+
+          if (fileIndex !== undefined) {
+            // Update the specific accordion with the diff
+            updateFileAccordion(fileIndex, message);
+          }
+        }
+      };
+
+      window.addEventListener('message', messageHandler);
+    }
+
+    function updateFileAccordion(index, diffData) {
+      const contentElement = document.getElementById('file-content-' + index);
+      if (!contentElement) return;
+
+      // Check if there was an error
+      if (diffData.error) {
+        contentElement.innerHTML = \`
+          <div class="p-4">
+            <div class="flex items-start space-x-3 text-vscode-error bg-red-500 bg-opacity-10 border border-red-500 border-opacity-30 rounded p-3">
+              <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+              </svg>
+              <div class="flex-1">
+                <p class="text-sm font-medium">Failed to load diff</p>
+                <p class="text-xs mt-1 opacity-80">\${escapeHtml(diffData.errorMessage || 'An unknown error occurred')}</p>
+              </div>
+            </div>
+          </div>
+        \`;
+        return;
+      }
+
+      // Generate the diff HTML
+      const diffHtml = generateDiffHtml(diffData.oldContent, diffData.newContent, diffData.changeType);
+
+      // Update the content
+      contentElement.innerHTML = '<div class="p-2">' + diffHtml + '</div>';
+
+      // Auto-expand the first file
+      if (index === 0) {
+        contentElement.classList.remove('hidden');
+        const chevron = document.querySelector('#file-accordion-' + index + ' .accordion-chevron');
+        if (chevron) {
+          chevron.style.transform = 'rotate(90deg)';
+        }
+      }
+    }
+
+    function viewFileDiff(filePath, changeType, fileName) {
+      console.log('Requesting diff for:', filePath);
+
+      // Show loading state
+      const folderView = document.getElementById('folderView');
+      const diffView = document.getElementById('diffView');
+      const emptyState = document.getElementById('emptyState');
+
+      emptyState.classList.add('hidden');
+      folderView.classList.add('hidden');
+      folderView.classList.remove('flex');
+      diffView.classList.remove('hidden');
+
+      document.getElementById('fileName').textContent = fileName;
+
+      // Show loading indicator with spinner
+      const diffContent = diffView.querySelector('.flex-1.overflow-y-auto');
+      diffContent.innerHTML = \`
+        <div class="flex items-center justify-center h-full text-vscode-fg opacity-60">
+          <div class="flex items-center space-x-3">
+            <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm">Loading diff...</span>
+          </div>
+        </div>
+      \`;
+
+      // Request diff from extension
+      vscode.postMessage({
+        command: 'getFileDiff',
+        filePath: filePath,
+        changeType: changeType
+      });
+    }
+
+    // Listen for diff response from extension
+    window.addEventListener('message', event => {
+      const message = event.data;
+
+      if (message.command === 'fileDiffResponse' && message.fileIndex === undefined) {
+        // This is for single file view (not accordion)
+        displayFileDiff(message);
+      }
+    });
+
+    function displayFileDiff(message) {
+      const diffView = document.getElementById('diffView');
+      const diffContent = diffView.querySelector('.flex-1.overflow-y-auto');
+
+      // Check if there was an error
+      if (message.error) {
+        diffContent.innerHTML = \`
+          <div class="flex items-center justify-center h-full p-8">
+            <div class="max-w-md w-full">
+              <div class="flex items-start space-x-3 text-vscode-error bg-red-500 bg-opacity-10 border border-red-500 border-opacity-30 rounded p-4">
+                <svg class="w-6 h-6 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                <div class="flex-1">
+                  <p class="text-sm font-medium">Failed to load diff</p>
+                  <p class="text-xs mt-1 opacity-80">\${escapeHtml(message.errorMessage || 'An unknown error occurred')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        \`;
+        return;
+      }
+
+      // Generate side-by-side or unified diff
+      const diffHtml = generateDiffHtml(message.oldContent, message.newContent, message.changeType);
+      diffContent.innerHTML = diffHtml;
+    }
+
+    function generateDiffHtml(oldContent, newContent, changeType) {
+      const oldLines = oldContent ? oldContent.split('\\n') : [];
+      const newLines = newContent ? newContent.split('\\n') : [];
+
+      let html = '<div class="font-mono text-xs">';
+
+      if (changeType === 'add') {
+        // File was added - show all lines as additions
+        newLines.forEach((line, index) => {
+          html += \`
+            <div class="diff-line flex bg-green-500 bg-opacity-10">
+              <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none"></span>
+              <span class="w-12 text-right px-2 bg-green-500 bg-opacity-20 text-vscode-fg opacity-60 select-none">\${index + 1}</span>
+              <span class="flex-1 px-4 py-1 text-green-300">+ \${escapeHtml(line)}</span>
+            </div>
+          \`;
+        });
+      } else if (changeType === 'delete') {
+        // File was deleted - show all lines as deletions
+        oldLines.forEach((line, index) => {
+          html += \`
+            <div class="diff-line flex bg-red-500 bg-opacity-10">
+              <span class="w-12 text-right px-2 bg-red-500 bg-opacity-20 text-vscode-fg opacity-60 select-none">\${index + 1}</span>
+              <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none"></span>
+              <span class="flex-1 px-4 py-1 text-red-300">- \${escapeHtml(line)}</span>
+            </div>
+          \`;
+        });
+      } else {
+        // File was modified - show diff with context (3 lines before/after changes)
+        const contextLines = 3;
+        const maxLines = Math.max(oldLines.length, newLines.length);
+
+        // Find changed line indices
+        const changedIndices = new Set();
+        for (let i = 0; i < maxLines; i++) {
+          if (oldLines[i] !== newLines[i]) {
+            changedIndices.add(i);
+          }
+        }
+
+        // Expand to include context
+        const linesToShow = new Set();
+        changedIndices.forEach(idx => {
+          for (let j = Math.max(0, idx - contextLines); j <= Math.min(maxLines - 1, idx + contextLines); j++) {
+            linesToShow.add(j);
+          }
+        });
+
+        // Convert to sorted array
+        const sortedLines = Array.from(linesToShow).sort((a, b) => a - b);
+
+        let lastLine = -1;
+        sortedLines.forEach(i => {
+          // Add separator for skipped lines
+          if (lastLine !== -1 && i > lastLine + 1) {
+            html += \`
+              <div class="diff-line flex bg-vscode-input-bg opacity-20">
+                <span class="w-12 text-right px-2 text-vscode-fg opacity-40 select-none">...</span>
+                <span class="w-12 text-right px-2 text-vscode-fg opacity-40 select-none">...</span>
+                <span class="flex-1 px-4 py-1 text-vscode-fg opacity-40 italic text-center">--- skipped \${i - lastLine - 1} lines ---</span>
+              </div>
+            \`;
+          }
+
+          const oldLine = oldLines[i];
+          const newLine = newLines[i];
+          const isChanged = changedIndices.has(i);
+
+          if (oldLine === newLine) {
+            // Unchanged line (context)
+            html += \`
+              <div class="diff-line flex">
+                <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
+                <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
+                <span class="flex-1 px-4 py-1 text-vscode-fg opacity-70">\${escapeHtml(oldLine || '')}</span>
+              </div>
+            \`;
+          } else if (oldLine && !newLine) {
+            // Line deleted
+            html += \`
+              <div class="diff-line flex bg-red-500 bg-opacity-10">
+                <span class="w-12 text-right px-2 bg-red-500 bg-opacity-20 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
+                <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none"></span>
+                <span class="flex-1 px-4 py-1 text-red-300">- \${escapeHtml(oldLine)}</span>
+              </div>
+            \`;
+          } else if (!oldLine && newLine) {
+            // Line added
+            html += \`
+              <div class="diff-line flex bg-green-500 bg-opacity-10">
+                <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none"></span>
+                <span class="w-12 text-right px-2 bg-green-500 bg-opacity-20 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
+                <span class="flex-1 px-4 py-1 text-green-300">+ \${escapeHtml(newLine)}</span>
+              </div>
+            \`;
+          } else {
+            // Line changed
+            html += \`
+              <div class="diff-line flex bg-red-500 bg-opacity-10">
+                <span class="w-12 text-right px-2 bg-red-500 bg-opacity-20 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
+                <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none"></span>
+                <span class="flex-1 px-4 py-1 text-red-300">- \${escapeHtml(oldLine)}</span>
+              </div>
+              <div class="diff-line flex bg-green-500 bg-opacity-10">
+                <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none"></span>
+                <span class="w-12 text-right px-2 bg-green-500 bg-opacity-20 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
+                <span class="flex-1 px-4 py-1 text-green-300">+ \${escapeHtml(newLine)}</span>
+              </div>
+            \`;
+          }
+
+          lastLine = i;
         });
       }
 
-      if (folderContent) {
-        collectFiles(folderContent);
-      }
-
-      // Hide other views
-      document.getElementById('emptyState').classList.add('hidden');
-      document.getElementById('diffView').classList.add('hidden');
-
-      // Show folder view
-      const folderView = document.getElementById('folderView');
-      folderView.classList.remove('hidden');
-      folderView.classList.add('flex');
-
-      // Update folder details
-      document.getElementById('folderName').textContent = folderName;
-      document.getElementById('folderFileCount').textContent = files.length + ' file' + (files.length !== 1 ? 's' : '');
-
-      // Populate files list
-      const filesList = document.getElementById('folderFilesList');
-      filesList.innerHTML = files.map(file => \`
-        <div class="flex items-center justify-between p-3 bg-vscode-input-bg rounded border border-vscode-input-border hover:bg-vscode-list-hover-bg transition-colors cursor-pointer" onclick="selectFile(this, '\${file.path}')">
-          <div class="flex items-center space-x-3 flex-1">
-            <svg class="w-4 h-4 text-vscode-fg opacity-70" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
-            </svg>
-            <span class="text-sm text-vscode-fg">\${file.name}</span>
-          </div>
-          \${file.changeType ? \`<span class="text-xs px-2 py-0.5 rounded font-semibold \${file.changeClass}">\${file.changeType}</span>\` : ''}
-          <button class="ml-3 px-3 py-1 text-xs text-vscode-link hover:underline">View</button>
-        </div>
-      \`).join('');
+      html += '</div>';
+      return html;
     }
 
-    function selectFile(button, fileName) {
-      // Remove active state from all file items and folders
-      document.querySelectorAll('.file-item').forEach(item => {
-        item.classList.remove('bg-vscode-list-active-bg', 'selected-file');
-      });
-      document.querySelectorAll('.folder-item').forEach(item => {
-        item.classList.remove('bg-vscode-list-active-bg', 'selected-folder');
-      });
-
-      // Add active state to selected file
-      button.classList.add('bg-vscode-list-active-bg', 'selected-file');
-
-      // Hide other views
-      const emptyState = document.getElementById('emptyState');
-      const diffView = document.getElementById('diffView');
-      const folderView = document.getElementById('folderView');
-      const fileNameElement = document.getElementById('fileName');
-
-      if (emptyState && diffView && folderView && fileNameElement) {
-        emptyState.classList.add('hidden');
-        folderView.classList.add('hidden');
-        folderView.classList.remove('flex');
-        diffView.classList.remove('hidden');
-        fileNameElement.textContent = fileName;
-      }
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
+
 
     // Comment Functions
     function submitComment() {

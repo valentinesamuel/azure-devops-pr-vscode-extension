@@ -280,8 +280,6 @@ export class StageDetailsLayout {
           }
 
           function formatLogsWithJson(logs) {
-            console.log('formatLogsWithJson called with', logs.length, 'logs');
-            console.log('First 5 log lines:', logs.slice(0, 5));
             let result = '';
             let inJson = false;
             let depth = 0;

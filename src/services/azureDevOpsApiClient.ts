@@ -322,6 +322,27 @@ export interface PullRequestFileChange {
   deletions?: number;
 }
 
+export interface FileDiff {
+  path: string;
+  changeType: 'add' | 'edit' | 'delete' | 'rename';
+  hunks: DiffHunk[];
+}
+
+export interface DiffHunk {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: DiffLine[];
+}
+
+export interface DiffLine {
+  type: 'context' | 'add' | 'delete';
+  oldLineNumber?: number;
+  newLineNumber?: number;
+  content: string;
+}
+
 export class AzureDevOpsApiClient {
   private baseUrl: string;
   private organization: string;
@@ -929,7 +950,6 @@ export class AzureDevOpsApiClient {
   async getStageJobs(project: string, buildId: number, stageId: string): Promise<PipelineRunJob[]> {
     try {
       const url = `${this.baseUrl}/${project}/_apis/build/builds/${buildId}/timeline?api-version=7.1`;
-      console.log('getStageJobs URL:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -949,10 +969,6 @@ export class AzureDevOpsApiClient {
       // First, find all Phases that belong to this Stage
       const phases = records.filter(
         (record) => record.type === 'Phase' && record.parentId === stageId,
-      );
-      console.log(
-        `Found ${phases.length} phases for stage ${stageId}:`,
-        phases.map((p) => p.name),
       );
 
       // Then, find all Jobs that belong to these Phases
@@ -1058,7 +1074,6 @@ export class AzureDevOpsApiClient {
 
       // Azure DevOps returns logs as {count: number, value: string[]}
       if (logData && logData.value && Array.isArray(logData.value)) {
-        console.log(`Parsed ${logData.count || logData.value.length} log lines from JSON response`);
         return logData.value;
       }
 
@@ -1086,7 +1101,6 @@ export class AzureDevOpsApiClient {
   ): Promise<PullRequestIteration[]> {
     try {
       const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/iterations?api-version=7.1`;
-      console.log('Fetching PR iterations from:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -1095,18 +1109,12 @@ export class AzureDevOpsApiClient {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('PR iterations fetch failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-        });
         throw new Error(
           `Failed to fetch PR iterations: ${response.status} ${response.statusText}. ${errorText}`,
         );
       }
 
       const data = (await response.json()) as { value?: PullRequestIteration[] };
-      console.log(`Fetched ${data.value?.length || 0} iterations:`, data.value);
       return data.value || [];
     } catch (error) {
       if (error instanceof Error) {
@@ -1133,7 +1141,6 @@ export class AzureDevOpsApiClient {
       // If no iteration ID provided, get the latest iteration
       let targetIterationId = iterationId;
       if (!targetIterationId) {
-        console.log('No iteration ID provided, fetching iterations...');
         const iterations = await this.getPullRequestIterations(
           project,
           repositoryId,
@@ -1145,11 +1152,9 @@ export class AzureDevOpsApiClient {
         }
         // Get the latest iteration (highest ID)
         targetIterationId = Math.max(...iterations.map((i) => i.id));
-        console.log(`Using iteration ID: ${targetIterationId}`);
       }
 
       const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/iterations/${targetIterationId}/changes?api-version=7.1`;
-      console.log('Fetching PR file changes from:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -1158,21 +1163,14 @@ export class AzureDevOpsApiClient {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('PR file changes fetch failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-        });
         throw new Error(
           `Failed to fetch PR file changes: ${response.status} ${response.statusText}. ${errorText}`,
         );
       }
 
       const data = (await response.json()) as { changeEntries?: GitChange[] };
-      console.log('Raw API response:', JSON.stringify(data, null, 2));
 
       const changes = data.changeEntries || [];
-      console.log(`Found ${changes.length} total changes (including folders)`);
 
       // Transform to our simplified format
       // Note: Some Azure DevOps responses don't include gitObjectType
@@ -1195,12 +1193,130 @@ export class AzureDevOpsApiClient {
           // You would need to fetch the actual diff to get additions/deletions
         }));
 
-      console.log(`Filtered to ${fileChanges.length} file changes:`, fileChanges);
       return fileChanges;
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error fetching PR file changes: ${error.message}`);
         console.error('Full error:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches the diff for a specific file in a pull request iteration
+   * @param project - The project name
+   * @param repositoryId - The repository ID
+   * @param pullRequestId - The pull request ID
+   * @param iterationId - The iteration ID
+   * @param baseIterationId - The base iteration ID (usually iterationId - 1, or omit for comparison with target)
+   * @param filePath - The file path to get diff for
+   */
+  async getFileDiff(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+    iterationId: number,
+    baseIterationId?: number,
+    filePath?: string,
+  ): Promise<FileDiff[]> {
+    try {
+      let url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/iterations/${iterationId}/changes?api-version=7.1`;
+
+      // If baseIterationId is provided, compare between iterations
+      if (baseIterationId) {
+        url += `&$compareTo=${baseIterationId}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+
+        throw new Error(
+          `Failed to fetch file diff: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as any;
+
+      // Azure DevOps returns changeEntries with diff content
+      const changeEntries = data.changeEntries || [];
+
+      // Filter for specific file if requested
+      let entries = changeEntries;
+      if (filePath) {
+        entries = changeEntries.filter((entry: any) => entry.item.path === filePath);
+      }
+
+      // Parse the diffs
+      const diffs: FileDiff[] = entries
+        .filter((entry: any) => entry.item.path && !entry.item.path.endsWith('/'))
+        .map((entry: any) => {
+          const diff: FileDiff = {
+            path: entry.item.path,
+            changeType: entry.changeType,
+            hunks: [],
+          };
+
+          // If there's a diff string, parse it
+          if (entry.item.contentMetadata?.encoding) {
+            // The diff might be in the changeEntry or we might need to make another request
+            // For now, we'll return the structure and fetch content separately if needed
+          }
+
+          return diff;
+        });
+
+      return diffs;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching file diff: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Gets the content of a file at a specific commit
+   * @param project - The project name
+   * @param repositoryId - The repository ID
+   * @param path - The file path
+   * @param versionDescriptor - The version (commit SHA, branch, etc)
+   */
+  async getFileContent(
+    project: string,
+    repositoryId: string,
+    path: string,
+    versionDescriptor: string,
+  ): Promise<string> {
+    try {
+      // Add includeContent=true and $format=text to get raw content
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/items?path=${encodeURIComponent(path)}&versionType=commit&version=${versionDescriptor}&includeContent=true&api-version=7.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          ...this.headers,
+          Accept: 'text/plain', // Request plain text instead of JSON
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch file content: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const content = await response.text();
+      return content;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching file content: ${error.message}`);
       }
       throw error;
     }
