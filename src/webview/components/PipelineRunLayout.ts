@@ -112,7 +112,7 @@ export class PipelineRunLayout {
       // Dummy data for demonstration
       return `
         <div class="stage-wrapper">
-          <div class="stage-card succeeded" onclick="openStageDetails('dummy-dev', 'DEV')">
+          <div class="stage-card succeeded cursor-pointer hover:-translate-y-0.5 hover:shadow-lg transition-all" onclick="openStageDetails('dummy-dev', 'DEV')">
             <div class="stage-header">
               <span class="stage-icon">✓</span>
               <span class="stage-name">DEV</span>
@@ -130,7 +130,7 @@ export class PipelineRunLayout {
         </div>
 
         <div class="stage-wrapper">
-          <div class="stage-card skipped">
+          <div class="stage-card skipped cursor-not-allowed opacity-60" style="pointer-events: none !important; user-select: none;">
             <div class="stage-header">
               <span class="stage-icon">○</span>
               <span class="stage-name">QA</span>
@@ -143,7 +143,7 @@ export class PipelineRunLayout {
         </div>
 
         <div class="stage-wrapper">
-          <div class="stage-card skipped">
+          <div class="stage-card skipped cursor-not-allowed opacity-60" style="pointer-events: none !important; user-select: none;">
             <div class="stage-header">
               <span class="stage-icon">○</span>
               <span class="stage-name">PROD</span>
@@ -157,10 +157,18 @@ export class PipelineRunLayout {
     }
 
     return stages
-      .map(
-        (stage, index) => `
+      .map((stage, index) => {
+        const isClickable = this.isStageClickable(stage);
+        const onclickAttr = isClickable
+          ? `onclick="openStageDetails('${stage.id}', '${stage.name}')"`
+          : '';
+        const pointerClass = isClickable
+          ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg'
+          : 'cursor-not-allowed opacity-60';
+
+        return `
       <div class="stage-wrapper">
-        <div class="stage-card ${this.getStageClass(stage)}" onclick="openStageDetails('${stage.id}', '${stage.name}')">
+        <div class="stage-card ${this.getStageClass(stage)} ${pointerClass}" ${onclickAttr} style="${!isClickable ? 'pointer-events: none !important; user-select: none;' : ''}">
           <div class="stage-header">
             <span class="stage-icon">${this.getStageIcon(stage)}</span>
             <span class="stage-name">${stage.name}</span>
@@ -172,9 +180,24 @@ export class PipelineRunLayout {
         </div>
         ${index < stages.length - 1 ? '<div class="stage-connector"></div>' : ''}
       </div>
-    `,
-      )
+    `;
+      })
       .join('');
+  }
+
+  private static isStageClickable(stage: PipelineRunStage): boolean {
+    // Explicitly exclude skipped stages
+    if (stage.result === 'skipped' || stage.state === 'skipped') {
+      return false;
+    }
+
+    // Only stages that have run (completed, failed, or in progress) are clickable
+    return (
+      stage.result === 'succeeded' ||
+      stage.result === 'failed' ||
+      stage.state === 'inProgress' ||
+      stage.state === 'completed'
+    );
   }
 
   private static getStageClass(stage: PipelineRunStage): string {
@@ -651,11 +674,6 @@ export class PipelineRunLayout {
         min-width: 280px;
         transition: all 0.2s ease;
         backdrop-filter: blur(10px);
-      }
-
-      .stage-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
 
       .stage-card.succeeded {
