@@ -366,15 +366,22 @@ export class PipelineRunLayout {
 
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        background-color: var(--vscode-editor-background);
+        background: linear-gradient(135deg, rgba(0, 120, 212, 0.02), transparent);
         color: var(--vscode-editor-foreground);
-        padding: 24px;
+        padding: 32px;
         line-height: 1.6;
+        min-height: 100vh;
       }
 
       .container {
         max-width: 1400px;
         margin: 0 auto;
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
       }
 
       /* Header */
@@ -382,26 +389,35 @@ export class PipelineRunLayout {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--vscode-panel-border);
+        margin-bottom: 32px;
+        padding: 24px;
+        background: var(--vscode-editor-background);
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       }
 
       .header-left {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 20px;
       }
 
       .status-icon {
-        font-size: 28px;
+        font-size: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
         backdrop-filter: blur(10px);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
       }
 
       .status-success {
@@ -429,31 +445,53 @@ export class PipelineRunLayout {
       }
 
       .title {
-        font-size: 26px;
-        font-weight: 600;
-        letter-spacing: -0.5px;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.6px;
+        background: linear-gradient(135deg, var(--vscode-editor-foreground), rgba(0, 120, 212, 0.8));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       .run-new-btn {
         background: linear-gradient(135deg, #0078d4, #106ebe);
         color: white;
         border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
+        padding: 12px 24px;
+        border-radius: 10px;
         cursor: pointer;
         font-size: 14px;
         font-weight: 600;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.25);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .run-new-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+      }
+
+      .run-new-btn:hover::before {
+        left: 100%;
       }
 
       .run-new-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 120, 212, 0.4);
       }
 
       .run-new-btn:active {
         transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
       }
 
       /* Retention Notice */
@@ -506,10 +544,16 @@ export class PipelineRunLayout {
       .summary-section {
         background-color: var(--vscode-editor-background);
         border: 1px solid var(--vscode-panel-border);
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 24px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 16px;
+        padding: 28px;
+        margin-bottom: 32px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .summary-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
       }
 
       .trigger-info {
@@ -620,17 +664,25 @@ export class PipelineRunLayout {
       .stages-section {
         background-color: var(--vscode-editor-background);
         border: 1px solid var(--vscode-panel-border);
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
       }
 
       .stages-title {
-        font-size: 20px;
-        font-weight: 600;
-        margin-bottom: 24px;
-        letter-spacing: -0.5px;
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 28px;
+        letter-spacing: -0.6px;
         color: var(--vscode-foreground);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .stages-title::before {
+        content: '🚀';
+        font-size: 24px;
       }
 
       .stages-list {
@@ -668,12 +720,13 @@ export class PipelineRunLayout {
 
       .stage-card {
         background-color: var(--vscode-editor-background);
-        border: 1px solid var(--vscode-panel-border);
-        border-radius: 10px;
-        padding: 18px;
-        min-width: 280px;
-        transition: all 0.2s ease;
+        border: 2px solid var(--vscode-panel-border);
+        border-radius: 14px;
+        padding: 22px;
+        min-width: 300px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         backdrop-filter: blur(10px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
       }
 
       .stage-card.succeeded {

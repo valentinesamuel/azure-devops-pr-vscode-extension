@@ -56,54 +56,84 @@ export class StageDetailsLayout {
         </script>
         <style>
           body {
-            background-color: var(--vscode-editor-background);
+            background: linear-gradient(135deg, rgba(0, 120, 212, 0.02), transparent);
             color: var(--vscode-editor-foreground);
           }
 
-          .task-item:hover {
-            background-color: var(--vscode-list-hoverBackground);
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+
+          .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+          }
+
+          .task-item {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           }
 
           .task-item.selected {
-            background-color: var(--vscode-list-activeSelectionBackground);
+            background: linear-gradient(90deg, var(--vscode-list-activeSelectionBackground) 0%, rgba(0, 120, 212, 0.2) 100%);
+            border-left: 3px solid #0078d4;
+            box-shadow: 0 2px 12px rgba(0, 120, 212, 0.25), inset 0 0 20px rgba(0, 120, 212, 0.1);
           }
 
           .scrollbar-thin::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
           }
 
           .scrollbar-thin::-webkit-scrollbar-track {
             background: var(--vscode-scrollbarSlider-background);
+            border-radius: 5px;
           }
 
           .scrollbar-thin::-webkit-scrollbar-thumb {
             background: var(--vscode-scrollbarSlider-hoverBackground);
-            border-radius: 4px;
+            border-radius: 5px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
           }
 
           .scrollbar-thin::-webkit-scrollbar-thumb:hover {
             background: var(--vscode-scrollbarSlider-activeBackground);
+            background-clip: padding-box;
+          }
+
+          .log-container {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+          }
+
+          .back-btn {
+            transition: all 0.2s ease;
+          }
+
+          .back-btn:hover {
+            transform: translateX(-2px);
           }
         </style>
       </head>
       <body class="h-screen flex flex-col overflow-hidden">
         <!-- Header -->
-        <div class="px-6 py-4 border-b" style="border-color: var(--vscode-panel-border)">
+        <div class="px-6 py-5 border-b backdrop-blur-sm bg-opacity-50 animate-fadeIn" style="border-color: var(--vscode-panel-border); background-color: var(--vscode-editor-background);">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
-              <button onclick="goBack()" class="p-2 hover:bg-opacity-10 hover:bg-white rounded">
+              <button onclick="goBack()" class="back-btn p-2.5 hover:bg-opacity-10 hover:bg-white rounded-lg shadow-sm hover:shadow-md">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
                 </svg>
               </button>
               <div>
-                <h1 class="text-lg font-semibold">Jobs in run #${buildNumber}</h1>
-                <p class="text-sm opacity-70">${pipelineName}</p>
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">⚙️</span>
+                  <h1 class="text-xl font-bold tracking-tight">Jobs in run #${buildNumber}</h1>
+                </div>
+                <p class="text-sm opacity-60 mt-0.5">${pipelineName}</p>
               </div>
             </div>
-            <button class="px-4 py-2 text-sm font-medium rounded hover:bg-opacity-10 hover:bg-white">
-              View raw log
+            <button class="px-5 py-2.5 text-sm font-semibold rounded-lg hover:bg-opacity-10 hover:bg-white transition-all shadow-sm hover:shadow-md border" style="border-color: var(--vscode-panel-border)">
+              📄 View raw log
             </button>
           </div>
         </div>
@@ -111,8 +141,13 @@ export class StageDetailsLayout {
         <!-- Main Content - Two Column Layout -->
         <div class="flex flex-1 overflow-hidden">
           <!-- Left Sidebar - Stages and Jobs Tree -->
-          <div class="w-[25%] border-r overflow-y-auto scrollbar-thin" style="border-color: var(--vscode-panel-border)">
-            ${this.renderStagesTree(data)}
+          <div class="w-[25%] border-r overflow-y-auto scrollbar-thin bg-opacity-30 backdrop-blur-sm" style="border-color: var(--vscode-panel-border); background-color: var(--vscode-sideBar-background);">
+            <div class="p-4">
+              <h2 class="text-sm font-bold uppercase tracking-wider opacity-60 mb-3 flex items-center gap-2">
+                <span>📋</span> Tasks
+              </h2>
+              ${this.renderStagesTree(data)}
+            </div>
           </div>
 
           <!-- Right Panel - Job Details and Logs -->
@@ -181,25 +216,27 @@ export class StageDetailsLayout {
               : \`<div class="flex"><span class="opacity-30 select-none w-12 text-right flex-shrink-0 text-xs pr-3">1</span><span class="opacity-50">No logs available for this task</span></div>\`;
 
             rightPanel.innerHTML = \`
-              <div class="flex-1 flex flex-col overflow-hidden">
+              <div class="flex-1 flex flex-col overflow-hidden animate-fadeIn">
                 <!-- Job Header -->
-                <div class="px-6 py-4 border-b" style="border-color: var(--vscode-panel-border)">
-                  <div class="flex items-center gap-3 mb-2">
-                    <span class="text-2xl">\${statusIcon}</span>
-                    <h2 class="text-xl font-semibold">\${escapeHtml(task.name)}</h2>
+                <div class="px-6 py-5 border-b bg-opacity-30 backdrop-blur-sm" style="border-color: var(--vscode-panel-border); background-color: var(--vscode-sideBar-background);">
+                  <div class="flex items-center gap-3 mb-3">
+                    <span class="text-3xl drop-shadow-lg">\${statusIcon}</span>
+                    <h2 class="text-2xl font-bold tracking-tight">\${escapeHtml(task.name)}</h2>
                   </div>
-                  <div class="flex items-center gap-6 text-sm opacity-70">
-                    <div>
-                      <span class="font-medium">Started:</span> \${startTime}
+                  <div class="flex items-center gap-8 text-sm">
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-opacity-50" style="background-color: var(--vscode-editor-background);">
+                      <span class="opacity-60">🕐</span>
+                      <span class="font-semibold opacity-80">\${startTime}</span>
                     </div>
-                    <div>
-                      <span class="font-medium">Duration:</span> \${duration}
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-opacity-50" style="background-color: var(--vscode-editor-background);">
+                      <span class="opacity-60">⏱️</span>
+                      <span class="font-semibold opacity-80">\${duration}</span>
                     </div>
                   </div>
                 </div>
 
                 <!-- Log Content -->
-                <div class="flex-1 overflow-auto scrollbar-thin font-mono text-sm px-4 py-2" style="background-color: var(--vscode-terminal-background, #0e1117); line-height: 1.5;">
+                <div class="flex-1 overflow-auto scrollbar-thin log-container text-sm px-4 py-3 shadow-inner" style="background-color: var(--vscode-terminal-background, #0e1117); line-height: 1.6;">
                   \${logsHtml}
                 </div>
               </div>
@@ -420,10 +457,14 @@ export class StageDetailsLayout {
 
     return `
       <div class="p-4">
-        <!-- Current Stage -->
-        <div class="mb-2">
-          <div class="flex items-center gap-2 px-3 py-2 rounded font-medium" style="background-color: var(--vscode-list-activeSelectionBackground)">
-            <span class="text-lg">${this.getStageIcon(stage)}</span>
+        <!-- Current Stage - Enhanced header -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 mb-2 opacity-60 text-xs uppercase tracking-wider font-semibold">
+            <span>📋</span>
+            <span>Current Stage</span>
+          </div>
+          <div class="flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-base shadow-md transition-all duration-200" style="background: linear-gradient(135deg, var(--vscode-list-activeSelectionBackground) 0%, rgba(var(--vscode-list-activeSelectionBackground-rgb, 0, 120, 215), 0.7) 100%); border: 1px solid rgba(255, 255, 255, 0.1);">
+            <span class="text-xl">${this.getStageIcon(stage)}</span>
             <span>${stage.name}</span>
           </div>
         </div>
@@ -461,22 +502,22 @@ export class StageDetailsLayout {
     const duration = this.calculateDuration(job);
 
     return `
-      <div class="pl-4 mb-2">
+      <div class="mb-3">
         <button
           onclick="toggleJob('${job.id}')"
-          class="flex items-center justify-between w-full px-3 py-2 rounded hover:bg-opacity-10 hover:bg-white text-left"
+          class="flex items-center justify-between w-full px-4 py-2.5 rounded-lg hover:bg-white hover:bg-opacity-5 text-left transition-all duration-150 border border-transparent hover:border-white hover:border-opacity-10"
         >
-          <div class="flex items-center gap-2">
-            <svg id="chevron-${job.id}" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex items-center gap-2.5">
+            <svg id="chevron-${job.id}" class="w-4 h-4 transition-transform duration-200 ${isExpanded ? '' : '-rotate-90'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
-            <span>${statusIcon}</span>
-            <span class="font-medium">${job.name}</span>
+            <span class="text-base">${statusIcon}</span>
+            <span class="font-semibold text-sm">${job.name}</span>
           </div>
-          <span class="text-xs opacity-70">${duration}</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-white bg-opacity-10">${duration}</span>
         </button>
 
-        <div id="tasks-${job.id}" class="${isExpanded ? '' : 'hidden'} pl-6 mt-1 space-y-1">
+        <div id="tasks-${job.id}" class="${isExpanded ? '' : 'hidden'} pl-6 mt-2 space-y-1.5">
           ${job.tasks.map((task) => this.renderTaskTree(task, job.id)).join('')}
         </div>
       </div>
@@ -491,13 +532,13 @@ export class StageDetailsLayout {
       <button
         data-task-id="${task.id}"
         onclick="selectTask('${task.id}', '${jobId}')"
-        class="task-item flex items-center justify-between w-full px-3 py-1.5 rounded text-sm hover:bg-opacity-10 hover:bg-white text-left"
+        class="task-item group flex items-center justify-between w-full px-4 py-2 rounded-md text-sm hover:bg-white hover:bg-opacity-10 text-left transition-all duration-150 border border-transparent hover:shadow-sm"
       >
-        <div class="flex items-center gap-2">
-          <span class="text-xs">${statusIcon}</span>
-          <span>${task.name}</span>
+        <div class="flex items-center gap-2.5">
+          <span class="text-sm transition-transform duration-150 group-hover:scale-110">${statusIcon}</span>
+          <span class="group-hover:translate-x-0.5 transition-transform duration-150">${task.name}</span>
         </div>
-        <span class="text-xs opacity-70">${duration}</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-white bg-opacity-5 group-hover:bg-opacity-15 transition-all duration-150">${duration}</span>
       </button>
     `;
   }
