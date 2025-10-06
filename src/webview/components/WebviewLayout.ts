@@ -250,8 +250,8 @@ ${WebviewStyles.getHtmlHead()}
       files.forEach((file, index) => {
         html += \`
           <div class="border border-vscode-border rounded bg-vscode-bg" id="file-accordion-\${index}">
-            <button class="w-full flex items-center justify-between p-3 hover:bg-vscode-list-hover-bg transition-colors" onclick="toggleFileAccordion(\${index})">
-              <div class="flex items-center space-x-3 flex-1">
+            <div class="flex items-center justify-between p-3 hover:bg-vscode-list-hover-bg transition-colors">
+              <button class="flex items-center space-x-3 flex-1" onclick="toggleFileAccordion(\${index})">
                 <svg class="w-3 h-3 accordion-chevron transition-transform" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
                 </svg>
@@ -260,9 +260,10 @@ ${WebviewStyles.getHtmlHead()}
                 </svg>
                 <span class="text-sm font-medium text-vscode-fg">\${file.name}</span>
                 \${file.changeTypeLabel ? \`<span class="text-xs px-2 py-0.5 rounded font-semibold \${file.changeTypeClass}">\${file.changeTypeLabel}</span>\` : ''}
-              </div>
-              <span class="text-xs text-vscode-fg opacity-60 mr-2">\${file.path}</span>
-            </button>
+                <span class="text-xs text-vscode-fg opacity-60 ml-2">\${file.path}</span>
+              </button>
+              <button class="text-vscode-link text-xs hover:underline px-3 py-1" onclick="event.stopPropagation(); viewFile('\${file.path}', '\${file.name}')">View</button>
+            </div>
             <div class="accordion-content hidden border-t border-vscode-border" id="file-content-\${index}">
               <div class="p-4 flex items-center justify-center text-vscode-fg opacity-60">
                 <div class="flex items-center space-x-2">
@@ -293,6 +294,12 @@ ${WebviewStyles.getHtmlHead()}
         content.classList.add('hidden');
         chevron.style.transform = 'rotate(0deg)';
       }
+    }
+
+    function viewFile(filePath, fileName) {
+      console.log('vieeewwwwing');
+      console.log('File path:', filePath);
+      console.log('File name:', fileName);
     }
 
     function loadFolderDiffs(files) {
