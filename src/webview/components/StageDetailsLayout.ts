@@ -111,7 +111,7 @@ export class StageDetailsLayout {
         <!-- Main Content - Two Column Layout -->
         <div class="flex flex-1 overflow-hidden">
           <!-- Left Sidebar - Stages and Jobs Tree -->
-          <div class="w-[30%] border-r overflow-y-auto scrollbar-thin" style="border-color: var(--vscode-panel-border)">
+          <div class="w-[25%] border-r overflow-y-auto scrollbar-thin" style="border-color: var(--vscode-panel-border)">
             ${this.renderStagesTree(data)}
           </div>
 
@@ -177,30 +177,11 @@ export class StageDetailsLayout {
             const duration = calculateDuration(task);
 
             const logsHtml = task.logs && task.logs.length > 0
-              ? task.logs.map((logLine, index) => \`
-                  <div class="flex gap-4">
-                    <span class="opacity-50 select-none w-12 text-right">\${index + 1}</span>
-                    <span class="flex-1">\${escapeHtml(logLine)}</span>
-                  </div>
-                \`).join('')
-              : \`
-                  <div class="flex gap-4">
-                    <span class="opacity-50 select-none w-12 text-right">1</span>
-                    <span class="flex-1">##[section]Starting: \${escapeHtml(task.name)}</span>
-                  </div>
-                  <div class="flex gap-4">
-                    <span class="opacity-50 select-none w-12 text-right">2</span>
-                    <span class="flex-1">==============================================================================</span>
-                  </div>
-                  <div class="flex gap-4">
-                    <span class="opacity-50 select-none w-12 text-right">3</span>
-                    <span class="flex-1">No logs available for this task</span>
-                  </div>
-                  <div class="flex gap-4">
-                    <span class="opacity-50 select-none w-12 text-right">4</span>
-                    <span class="flex-1">##[section]Finishing: \${escapeHtml(task.name)}</span>
-                  </div>
-                \`;
+              ? task.logs.map((logLine, index) => {
+                  const formatted = formatLogLine(logLine);
+                  return \`<div class="flex hover:bg-white hover:bg-opacity-5"><span class="opacity-30 select-none w-12 text-right flex-shrink-0 text-xs pr-3">\${index + 1}</span><span class="whitespace-nowrap">\${formatted}</span></div>\`;
+                }).join('')
+              : \`<div class="flex"><span class="opacity-30 select-none w-12 text-right flex-shrink-0 text-xs pr-3">1</span><span class="opacity-50">No logs available for this task</span></div>\`;
 
             rightPanel.innerHTML = \`
               <div class="flex-1 flex flex-col overflow-hidden">
@@ -221,7 +202,7 @@ export class StageDetailsLayout {
                 </div>
 
                 <!-- Log Content -->
-                <div class="flex-1 overflow-y-auto scrollbar-thin font-mono text-sm p-4" style="background-color: var(--vscode-terminal-background, #1e1e1e)">
+                <div class="flex-1 overflow-auto scrollbar-thin font-mono text-sm px-4 py-2" style="background-color: var(--vscode-terminal-background, #0e1117); line-height: 1.5;">
                   \${logsHtml}
                 </div>
               </div>
@@ -262,6 +243,57 @@ export class StageDetailsLayout {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+          }
+
+          function formatLogLine(logLine) {
+            // Remove timestamp prefix if present
+            let line = logLine.replace(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z\\s/, '');
+
+            // Escape HTML first
+            line = escapeHtml(line);
+
+            // Parse ANSI color codes
+            const ansiColors = {
+              '30': '#000000', '31': '#cd3131', '32': '#0dbc79', '33': '#e5e510',
+              '34': '#2472c8', '35': '#bc3fbc', '36': '#11a8cd', '37': '#e5e5e5',
+              '90': '#666666', '91': '#f14c4c', '92': '#23d18b', '93': '#f5f543',
+              '94': '#3b8eea', '95': '#d670d6', '96': '#29b8db', '97': '#e5e5e5'
+            };
+
+            line = line.replace(/\\[([0-9;]+)m/g, (match, codes) => {
+              const codeList = codes.split(';');
+              let html = '';
+              for (const code of codeList) {
+                if (code === '0' || code === '') {
+                  html += '</span>';
+                } else if (ansiColors[code]) {
+                  html += \`<span style="color: \${ansiColors[code]};">\`;
+                } else if (code === '1') {
+                  html += '<span style="font-weight: bold;">';
+                }
+              }
+              return html;
+            });
+
+            line = line.replace(/^(<\\/span>)+/, '');
+
+            // Format Azure DevOps special markers (after ANSI parsing)
+            // ##[section] - heading style
+            line = line.replace(/##\\[section\\](.+)/g, '<strong style="color: #00d4aa; font-size: 1.1em;">$1</strong>');
+
+            // ##[command] - code style
+            line = line.replace(/##\\[command\\](.+)/g, '<code style="color: #58a6ff; background: rgba(110,118,129,0.1); padding: 2px 4px; border-radius: 3px;">$1</code>');
+
+            // ##[error] - error style
+            line = line.replace(/##\\[error\\](.+)/g, '<strong style="color: #f85149;">✗ $1</strong>');
+
+            // ##[warning] - warning style
+            line = line.replace(/##\\[warning\\](.+)/g, '<strong style="color: #d29922;">⚠ $1</strong>');
+
+            // ##[debug] - debug style (dimmed)
+            line = line.replace(/##\\[debug\\](.+)/g, '<span style="color: #8b949e; opacity: 0.7;">$1</span>');
+
+            return line;
           }
 
           function toggleJob(jobId) {

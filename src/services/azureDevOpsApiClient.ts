@@ -1018,8 +1018,17 @@ export class AzureDevOpsApiClient {
         );
       }
 
-      const logText = await response.text();
-      return logText.split('\n');
+      const logData = (await response.json()) as { count?: number; value?: string[] };
+
+      // Azure DevOps returns logs as {count: number, value: string[]}
+      if (logData && logData.value && Array.isArray(logData.value)) {
+        console.log(`Parsed ${logData.count || logData.value.length} log lines from JSON response`);
+        return logData.value;
+      }
+
+      // Fallback: if it's not the expected format, return empty
+      console.warn('Unexpected log format, expected {count, value}');
+      return [];
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error fetching task logs: ${error.message}`);
