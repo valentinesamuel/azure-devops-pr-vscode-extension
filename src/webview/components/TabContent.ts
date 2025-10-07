@@ -116,13 +116,25 @@ export class TabContent {
 
     const fileCount = fileChanges.length;
     return `
-      <div id="filesContent" class="tab-content hidden h-full flex gap-4">
+      <div id="filesContent" class="tab-content hidden h-full flex gap-4 relative">
+        <!-- Collapsed State Button (Initially Hidden) -->
+        <button id="expandFileTreeBtn" class="hidden absolute left-0 top-0 bottom-0 w-8 bg-vscode-bg border-r border-vscode-border hover:bg-vscode-list-hover-bg transition-colors z-10" onclick="toggleFileTree()" title="Expand file tree">
+          <svg class="w-4 h-4 mx-auto text-vscode-fg" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+
         <!-- Left Column - File Tree -->
-        <div class="w-80 bg-vscode-bg rounded-lg border border-vscode-border overflow-hidden flex flex-col">
+        <div id="fileTreePanel" class="w-80 bg-vscode-bg rounded-lg border border-vscode-border overflow-hidden flex flex-col transition-all duration-300">
           <!-- Header -->
           <div class="p-4 border-b border-vscode-border">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-sm font-medium text-vscode-fg">All Changes</h3>
+              <button onclick="toggleFileTree()" class="text-vscode-fg opacity-60 hover:opacity-100 transition-opacity" title="Collapse file tree">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </button>
             </div>
             <div class="text-xs text-vscode-fg opacity-60">${fileCount} changed file${fileCount !== 1 ? 's' : ''}</div>
           </div>

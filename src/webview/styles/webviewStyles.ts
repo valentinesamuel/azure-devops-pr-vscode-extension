@@ -199,6 +199,24 @@ export class WebviewStyles {
           display: inline;
           white-space: pre;
         }
+
+        /* File tree collapse transition */
+        #fileTreePanel {
+          transition: width 0.3s ease, opacity 0.3s ease;
+          overflow: hidden;
+        }
+
+        #fileTreePanel.collapsed {
+          width: 0 !important;
+          opacity: 0 !important;
+          border: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        #expandFileTreeBtn {
+          transition: opacity 0.3s ease;
+        }
       </style>`;
   }
 

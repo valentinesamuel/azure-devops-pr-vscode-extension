@@ -92,6 +92,29 @@ ${WebviewStyles.getHtmlHead()}
     }
 
     // File Tree Functions
+    function toggleFileTree() {
+      const fileTreePanel = document.getElementById('fileTreePanel');
+      const expandBtn = document.getElementById('expandFileTreeBtn');
+
+      if (!fileTreePanel || !expandBtn) return;
+
+      const isCollapsed = fileTreePanel.classList.contains('collapsed');
+
+      if (isCollapsed) {
+        // Expand
+        fileTreePanel.classList.remove('collapsed');
+        fileTreePanel.style.width = '20rem'; // 80 = w-80
+        fileTreePanel.style.opacity = '1';
+        expandBtn.classList.add('hidden');
+      } else {
+        // Collapse
+        fileTreePanel.classList.add('collapsed');
+        fileTreePanel.style.width = '0';
+        fileTreePanel.style.opacity = '0';
+        expandBtn.classList.remove('hidden');
+      }
+    }
+
     function toggleFolder(button) {
       // Clear active state from any selected files and folders
       document.querySelectorAll('.file-item').forEach(item => {
