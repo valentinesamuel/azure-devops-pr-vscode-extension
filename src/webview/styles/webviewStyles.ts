@@ -200,6 +200,27 @@ export class WebviewStyles {
           white-space: pre;
         }
 
+        /* Diff panel scrolling */
+        #diff-base-scroll,
+        #diff-pr-scroll {
+          overflow: auto !important;
+        }
+
+        #diff-base-scroll > div,
+        #diff-pr-scroll > div {
+          min-width: max-content;
+        }
+
+        .diff-line pre {
+          white-space: pre;
+          overflow: visible;
+        }
+
+        .diff-line {
+          white-space: nowrap;
+          min-width: max-content;
+        }
+
         /* File tree collapse transition */
         #fileTreePanel {
           transition: width 0.3s ease, opacity 0.3s ease;

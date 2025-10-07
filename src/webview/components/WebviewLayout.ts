@@ -525,7 +525,7 @@ ${WebviewStyles.getHtmlHead()}
 
       let isSyncing = false;
 
-      // Synchronize PR scroll when base is scrolled
+      // Synchronize PR scroll when base is scrolled (both vertical and horizontal)
       baseScroll.addEventListener('scroll', function() {
         if (isSyncing) {
           return;
@@ -533,6 +533,7 @@ ${WebviewStyles.getHtmlHead()}
 
         isSyncing = true;
         prScroll.scrollTop = baseScroll.scrollTop;
+        prScroll.scrollLeft = baseScroll.scrollLeft;
 
         // Reset flag after scroll event completes
         requestAnimationFrame(() => {
@@ -540,7 +541,7 @@ ${WebviewStyles.getHtmlHead()}
         });
       });
 
-      // Synchronize base scroll when PR is scrolled
+      // Synchronize base scroll when PR is scrolled (both vertical and horizontal)
       prScroll.addEventListener('scroll', function() {
         if (isSyncing) {
           return;
@@ -548,6 +549,7 @@ ${WebviewStyles.getHtmlHead()}
 
         isSyncing = true;
         baseScroll.scrollTop = prScroll.scrollTop;
+        baseScroll.scrollLeft = prScroll.scrollLeft;
 
         // Reset flag after scroll event completes
         requestAnimationFrame(() => {
@@ -619,13 +621,14 @@ ${WebviewStyles.getHtmlHead()}
       const language = detectLanguage(filePath);
 
       let html = \`
-        <div class="flex h-full">
+        <div class="flex h-full overflow-hidden">
           <!-- Old Version (Base) -->
-          <div class="flex-1 border-r border-vscode-border flex flex-col">
+          <div class="flex-1 border-r border-vscode-border flex flex-col min-w-0">
             <div class="bg-vscode-input-bg border-b border-vscode-border px-4 py-2">
               <span class="text-sm font-medium text-vscode-fg">Base Version</span>
             </div>
-            <div id="diff-base-scroll" class="flex-1 overflow-y-auto font-mono text-xs">
+            <div id="diff-base-scroll" class="flex-1 overflow-auto font-mono text-xs">
+              <div style="min-width: max-content;">
       \`;
 
       for (let i = 0; i < maxLines; i++) {
@@ -638,31 +641,33 @@ ${WebviewStyles.getHtmlHead()}
           const bgClass = isDeleted ? 'bg-red-500 bg-opacity-10' : '';
           const highlightedLine = highlightCode(oldLine, language);
           html += \`
-            <div class="flex \${bgClass}">
-              <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
-              <pre class="flex-1 px-4 py-1 m-0"><code class="hljs">\${highlightedLine}</code></pre>
+            <div class="diff-line flex \${bgClass}">
+              <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none flex-shrink-0">\${i + 1}</span>
+              <pre class="px-4 py-1 m-0 flex-shrink-0"><code class="hljs">\${highlightedLine}</code></pre>
             </div>
           \`;
         } else {
           html += \`
-            <div class="flex bg-vscode-input-bg opacity-20">
-              <span class="w-12 text-right px-2 text-vscode-fg opacity-30 select-none"></span>
-              <span class="flex-1 px-4 py-1"></span>
+            <div class="diff-line flex bg-vscode-input-bg opacity-20">
+              <span class="w-12 text-right px-2 text-vscode-fg opacity-30 select-none flex-shrink-0"></span>
+              <span class="px-4 py-1 flex-shrink-0"></span>
             </div>
           \`;
         }
       }
 
       html += \`
+              </div>
             </div>
           </div>
 
           <!-- New Version (PR) -->
-          <div class="flex-1 flex flex-col">
+          <div class="flex-1 flex flex-col min-w-0">
             <div class="bg-vscode-input-bg border-b border-vscode-border px-4 py-2">
               <span class="text-sm font-medium text-vscode-fg">PR Version</span>
             </div>
-            <div id="diff-pr-scroll" class="flex-1 overflow-y-auto font-mono text-xs">
+            <div id="diff-pr-scroll" class="flex-1 overflow-auto font-mono text-xs">
+              <div style="min-width: max-content;">
       \`;
 
       for (let i = 0; i < maxLines; i++) {
@@ -675,22 +680,23 @@ ${WebviewStyles.getHtmlHead()}
           const bgClass = isAdded ? 'bg-green-500 bg-opacity-10' : '';
           const highlightedLine = highlightCode(newLine, language);
           html += \`
-            <div class="flex \${bgClass}">
-              <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
-              <pre class="flex-1 px-4 py-1 m-0"><code class="hljs">\${highlightedLine}</code></pre>
+            <div class="diff-line flex \${bgClass}">
+              <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none flex-shrink-0">\${i + 1}</span>
+              <pre class="px-4 py-1 m-0 flex-shrink-0"><code class="hljs">\${highlightedLine}</code></pre>
             </div>
           \`;
         } else {
           html += \`
-            <div class="flex bg-vscode-input-bg opacity-20">
-              <span class="w-12 text-right px-2 text-vscode-fg opacity-30 select-none"></span>
-              <span class="flex-1 px-4 py-1"></span>
+            <div class="diff-line flex bg-vscode-input-bg opacity-20">
+              <span class="w-12 text-right px-2 text-vscode-fg opacity-30 select-none flex-shrink-0"></span>
+              <span class="px-4 py-1 flex-shrink-0"></span>
             </div>
           \`;
         }
       }
 
       html += \`
+              </div>
             </div>
           </div>
         </div>
