@@ -327,6 +327,7 @@ export class PrDetailsWebviewProvider {
                       changeType: message.changeType,
                       fileIndex: message.fileIndex,
                       fileName: message.fileName,
+                      viewMode: message.viewMode,
                       error: false,
                     });
                   } else {
@@ -377,6 +378,97 @@ export class PrDetailsWebviewProvider {
 
               vscode.window.showErrorMessage(
                 `Failed to fetch file diff: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              );
+            }
+            break;
+          case 'openFileDiff':
+            try {
+              if (pullRequest.repository) {
+                const pat = await authService.getPersonalAccessToken();
+                if (pat) {
+                  const apiClient = new AzureDevOpsApiClient({
+                    organization: pullRequest.repository.organization,
+                    pat,
+                  });
+
+                  // Get iterations to find the latest one
+                  const iterations = await apiClient.getPullRequestIterations(
+                    pullRequest.repository.project,
+                    pullRequest.repository.repository,
+                    pullRequest.id,
+                  );
+
+                  if (iterations.length > 0) {
+                    const latestIteration = iterations[iterations.length - 1];
+                    const sourceCommit = latestIteration.sourceRefCommit?.commitId;
+                    const targetCommit = latestIteration.targetRefCommit?.commitId;
+
+                    // Fetch both versions of the file
+                    let oldContent = '';
+                    let newContent = '';
+
+                    try {
+                      if (targetCommit && message.changeType !== 'add') {
+                        oldContent = await apiClient.getFileContent(
+                          pullRequest.repository.project,
+                          pullRequest.repository.repository,
+                          message.filePath,
+                          targetCommit,
+                        );
+                      }
+                    } catch (e) {
+                      console.log('Could not fetch old content (file might be new)');
+                    }
+
+                    try {
+                      if (sourceCommit && message.changeType !== 'delete') {
+                        newContent = await apiClient.getFileContent(
+                          pullRequest.repository.project,
+                          pullRequest.repository.repository,
+                          message.filePath,
+                          sourceCommit,
+                        );
+                      }
+                    } catch (e) {
+                      console.log('Could not fetch new content (file might be deleted)');
+                    }
+
+                    // Create virtual documents for the diff view with file extensions for syntax highlighting
+                    const oldUri = vscode.Uri.parse(
+                      `azure-devops-pr-diff:/${message.filePath}`,
+                    ).with({
+                      query: JSON.stringify({
+                        content: oldContent,
+                        path: message.filePath,
+                        side: 'base',
+                      }),
+                    });
+
+                    const newUri = vscode.Uri.parse(
+                      `azure-devops-pr-diff:/${message.filePath}`,
+                    ).with({
+                      query: JSON.stringify({
+                        content: newContent,
+                        path: message.filePath,
+                        side: 'pr',
+                      }),
+                    });
+
+                    // Open diff view with proper titles
+                    await vscode.commands.executeCommand(
+                      'vscode.diff',
+                      oldUri,
+                      newUri,
+                      `${message.fileName} (Base ↔ PR)`,
+                      { preview: false },
+                    );
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error opening file diff:', error);
+              vscode.window.showErrorMessage(
+                `Failed to open file diff: ${error instanceof Error ? error.message : 'Unknown error'}`,
               );
             }
             break;

@@ -184,7 +184,135 @@ export class WebviewStyles {
         .sidebar-card:hover {
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
+
+        /* Syntax highlighting adjustments */
+        pre, code {
+          margin: 0;
+          padding: 0;
+          background: transparent !important;
+          font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+          font-size: inherit;
+          line-height: 1.5;
+        }
+
+        pre code {
+          display: inline;
+          white-space: pre;
+        }
       </style>`;
+  }
+
+  static getPrismStyles(): string {
+    return `
+      <!-- Highlight.js for syntax highlighting -->
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/scss.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/markdown.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/php.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/ruby.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+      <style>
+        /* Custom Highlight.js theme adjustments for VS Code integration */
+        .hljs {
+          background: transparent !important;
+          padding: 0 !important;
+        }
+
+        .hljs-comment,
+        .hljs-quote {
+          color: #6A9955;
+          font-style: italic;
+        }
+
+        .hljs-keyword,
+        .hljs-selector-tag,
+        .hljs-literal,
+        .hljs-type {
+          color: #569CD6;
+        }
+
+        .hljs-string,
+        .hljs-doctag {
+          color: #CE9178;
+        }
+
+        .hljs-title,
+        .hljs-section,
+        .hljs-selector-id {
+          color: #DCDCAA;
+        }
+
+        .hljs-subst,
+        .hljs-type,
+        .hljs-class .hljs-title,
+        .hljs-tag {
+          color: #4EC9B0;
+        }
+
+        .hljs-number,
+        .hljs-literal,
+        .hljs-variable,
+        .hljs-template-variable,
+        .hljs-attribute {
+          color: #B5CEA8;
+        }
+
+        .hljs-symbol,
+        .hljs-bullet,
+        .hljs-link {
+          color: #4FC1FF;
+        }
+
+        .hljs-meta,
+        .hljs-selector-attr,
+        .hljs-selector-pseudo {
+          color: #9CDCFE;
+        }
+
+        .hljs-built_in,
+        .hljs-builtin-name {
+          color: #4EC9B0;
+        }
+
+        .hljs-attr {
+          color: #9CDCFE;
+        }
+
+        .hljs-function .hljs-title {
+          color: #DCDCAA;
+        }
+
+        .hljs-name {
+          color: #4EC9B0;
+        }
+
+        .hljs-tag .hljs-name {
+          color: #569CD6;
+        }
+
+        .hljs-tag .hljs-attr {
+          color: #9CDCFE;
+        }
+
+        .hljs-params {
+          color: var(--vscode-editor-foreground);
+        }
+      </style>
+    `;
   }
 
   static getHtmlHead(): string {
@@ -196,6 +324,7 @@ export class WebviewStyles {
         <script src="https://cdn.tailwindcss.com"></script>
         ${this.getTailwindConfig()}
         ${this.getCustomStyles()}
+        ${this.getPrismStyles()}
       </head>`;
   }
 }

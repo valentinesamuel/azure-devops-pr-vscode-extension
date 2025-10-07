@@ -262,7 +262,7 @@ ${WebviewStyles.getHtmlHead()}
                 \${file.changeTypeLabel ? \`<span class="text-xs px-2 py-0.5 rounded font-semibold \${file.changeTypeClass}">\${file.changeTypeLabel}</span>\` : ''}
                 <span class="text-xs text-vscode-fg opacity-60 ml-2">\${file.path}</span>
               </button>
-              <button class="text-vscode-link text-xs hover:underline px-3 py-1" onclick="event.stopPropagation(); viewFile('\${file.path}', '\${file.name}')">View</button>
+              <button class="text-vscode-link text-xs hover:underline px-3 py-1" onclick="event.stopPropagation(); viewFile('\${file.path}', '\${file.name}', '\${file.changeType}')">View</button>
             </div>
             <div class="accordion-content hidden border-t border-vscode-border" id="file-content-\${index}">
               <div class="p-4 flex items-center justify-center text-vscode-fg opacity-60">
@@ -296,10 +296,46 @@ ${WebviewStyles.getHtmlHead()}
       }
     }
 
-    function viewFile(filePath, fileName) {
+    function viewFile(filePath, fileName, changeType) {
       console.log('vieeewwwwing');
       console.log('File path:', filePath);
       console.log('File name:', fileName);
+      console.log('Change type:', changeType);
+
+      // Show loading state in the right panel
+      const emptyState = document.getElementById('emptyState');
+      const folderView = document.getElementById('folderView');
+      const diffView = document.getElementById('diffView');
+
+      emptyState.classList.add('hidden');
+      folderView.classList.add('hidden');
+      folderView.classList.remove('flex');
+      diffView.classList.remove('hidden');
+
+      document.getElementById('fileName').textContent = fileName;
+
+      // Show loading indicator with spinner
+      const diffContent = diffView.querySelector('.flex-1.overflow-y-auto');
+      diffContent.innerHTML = \`
+        <div class="flex items-center justify-center h-full text-vscode-fg opacity-60">
+          <div class="flex items-center space-x-3">
+            <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm">Loading side-by-side diff...</span>
+          </div>
+        </div>
+      \`;
+
+      // Request diff from extension
+      vscode.postMessage({
+        command: 'getFileDiff',
+        filePath: filePath,
+        changeType: changeType,
+        fileName: fileName,
+        viewMode: 'side-by-side'
+      });
     }
 
     function loadFolderDiffs(files) {
@@ -440,9 +476,158 @@ ${WebviewStyles.getHtmlHead()}
         return;
       }
 
-      // Generate side-by-side or unified diff
-      const diffHtml = generateDiffHtml(message.oldContent, message.newContent, message.changeType);
-      diffContent.innerHTML = diffHtml;
+      // Check if side-by-side view was requested
+      if (message.viewMode === 'side-by-side') {
+        const sideBySideDiffHtml = generateSideBySideDiffHtml(message.oldContent, message.newContent, message.changeType, message.filePath);
+        diffContent.innerHTML = sideBySideDiffHtml;
+      } else {
+        // Generate unified diff
+        const diffHtml = generateDiffHtml(message.oldContent, message.newContent, message.changeType);
+        diffContent.innerHTML = diffHtml;
+      }
+    }
+
+    function detectLanguage(filePath) {
+      if (!filePath) return 'plaintext';
+
+      const extension = filePath.split('.').pop().toLowerCase();
+      const languageMap = {
+        'js': 'javascript',
+        'jsx': 'javascript',
+        'ts': 'typescript',
+        'tsx': 'typescript',
+        'json': 'json',
+        'py': 'python',
+        'java': 'java',
+        'cs': 'csharp',
+        'css': 'css',
+        'scss': 'scss',
+        'sass': 'scss',
+        'yml': 'yaml',
+        'yaml': 'yaml',
+        'md': 'markdown',
+        'sh': 'bash',
+        'bash': 'bash',
+        'sql': 'sql',
+        'dockerfile': 'dockerfile',
+        'go': 'go',
+        'rs': 'rust',
+        'php': 'php',
+        'rb': 'ruby',
+        'html': 'xml',
+        'xml': 'xml',
+        'svg': 'xml'
+      };
+
+      return languageMap[extension] || 'plaintext';
+    }
+
+    function highlightCode(code, language) {
+      if (!code) return '';
+      if (!window.hljs) return escapeHtml(code);
+
+      try {
+        // Try to highlight with the specified language
+        if (window.hljs.getLanguage(language)) {
+          const result = window.hljs.highlight(code, { language: language, ignoreIllegals: true });
+          return result.value;
+        } else {
+          // Fallback to auto-detection
+          const result = window.hljs.highlightAuto(code);
+          return result.value;
+        }
+      } catch (e) {
+        console.error('Highlight.js error:', e);
+      }
+
+      return escapeHtml(code);
+    }
+
+    function generateSideBySideDiffHtml(oldContent, newContent, changeType, filePath) {
+      const oldLines = oldContent ? oldContent.split('\\n') : [];
+      const newLines = newContent ? newContent.split('\\n') : [];
+      const maxLines = Math.max(oldLines.length, newLines.length);
+      const language = detectLanguage(filePath);
+
+      let html = \`
+        <div class="flex h-full">
+          <!-- Old Version (Base) -->
+          <div class="flex-1 border-r border-vscode-border flex flex-col">
+            <div class="bg-vscode-input-bg border-b border-vscode-border px-4 py-2">
+              <span class="text-sm font-medium text-vscode-fg">Base Version</span>
+            </div>
+            <div class="flex-1 overflow-y-auto font-mono text-xs">
+      \`;
+
+      for (let i = 0; i < maxLines; i++) {
+        const oldLine = oldLines[i];
+        const newLine = newLines[i];
+        const isChanged = oldLine !== newLine;
+        const isDeleted = oldLine !== undefined && (newLine === undefined || isChanged);
+
+        if (oldLine !== undefined) {
+          const bgClass = isDeleted ? 'bg-red-500 bg-opacity-10' : '';
+          const highlightedLine = highlightCode(oldLine, language);
+          html += \`
+            <div class="flex \${bgClass}">
+              <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
+              <pre class="flex-1 px-4 py-1 m-0"><code class="hljs">\${highlightedLine}</code></pre>
+            </div>
+          \`;
+        } else {
+          html += \`
+            <div class="flex bg-vscode-input-bg opacity-20">
+              <span class="w-12 text-right px-2 text-vscode-fg opacity-30 select-none"></span>
+              <span class="flex-1 px-4 py-1"></span>
+            </div>
+          \`;
+        }
+      }
+
+      html += \`
+            </div>
+          </div>
+
+          <!-- New Version (PR) -->
+          <div class="flex-1 flex flex-col">
+            <div class="bg-vscode-input-bg border-b border-vscode-border px-4 py-2">
+              <span class="text-sm font-medium text-vscode-fg">PR Version</span>
+            </div>
+            <div class="flex-1 overflow-y-auto font-mono text-xs">
+      \`;
+
+      for (let i = 0; i < maxLines; i++) {
+        const oldLine = oldLines[i];
+        const newLine = newLines[i];
+        const isChanged = oldLine !== newLine;
+        const isAdded = newLine !== undefined && (oldLine === undefined || isChanged);
+
+        if (newLine !== undefined) {
+          const bgClass = isAdded ? 'bg-green-500 bg-opacity-10' : '';
+          const highlightedLine = highlightCode(newLine, language);
+          html += \`
+            <div class="flex \${bgClass}">
+              <span class="w-12 text-right px-2 bg-vscode-input-bg opacity-50 text-vscode-fg opacity-60 select-none">\${i + 1}</span>
+              <pre class="flex-1 px-4 py-1 m-0"><code class="hljs">\${highlightedLine}</code></pre>
+            </div>
+          \`;
+        } else {
+          html += \`
+            <div class="flex bg-vscode-input-bg opacity-20">
+              <span class="w-12 text-right px-2 text-vscode-fg opacity-30 select-none"></span>
+              <span class="flex-1 px-4 py-1"></span>
+            </div>
+          \`;
+        }
+      }
+
+      html += \`
+            </div>
+          </div>
+        </div>
+      \`;
+
+      return html;
     }
 
     function generateDiffHtml(oldContent, newContent, changeType) {

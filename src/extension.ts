@@ -6,6 +6,7 @@ import { PipelineRunProvider, PipelineRunItem } from './pipelineRunProvider';
 import { PrDetailsWebviewProvider } from './prDetailsWebview';
 import { PipelineRunDetailsWebviewProvider } from './pipelineRunDetailsWebview';
 import { AuthService } from './services/authService';
+import { DiffContentProvider } from './diffContentProvider';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -16,6 +17,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Initialize authentication service
   const authService = new AuthService(context);
+
+  // Register diff content provider for virtual documents
+  const diffContentProvider = new DiffContentProvider();
+  const diffProviderDisposable = vscode.workspace.registerTextDocumentContentProvider(
+    'azure-devops-pr-diff',
+    diffContentProvider,
+  );
 
   // Log user profile if authenticated
   await logUserProfile(authService);
@@ -233,6 +241,7 @@ export async function activate(context: vscode.ExtensionContext) {
     refreshPipelineRunsCommand,
     filterPipelineRunsCommand,
     openPipelineRunDetailsCommand,
+    diffProviderDisposable,
   );
 }
 
