@@ -480,11 +480,57 @@ ${WebviewStyles.getHtmlHead()}
       if (message.viewMode === 'side-by-side') {
         const sideBySideDiffHtml = generateSideBySideDiffHtml(message.oldContent, message.newContent, message.changeType, message.filePath);
         diffContent.innerHTML = sideBySideDiffHtml;
+
+        // Set up synchronized scrolling after DOM is ready
+        setTimeout(() => {
+          setupSynchronizedScrolling();
+        }, 0);
       } else {
         // Generate unified diff
         const diffHtml = generateDiffHtml(message.oldContent, message.newContent, message.changeType);
         diffContent.innerHTML = diffHtml;
       }
+    }
+
+    function setupSynchronizedScrolling() {
+      const baseScroll = document.getElementById('diff-base-scroll');
+      const prScroll = document.getElementById('diff-pr-scroll');
+
+      if (!baseScroll || !prScroll) {
+        return;
+      }
+
+      let isSyncing = false;
+
+      // Synchronize PR scroll when base is scrolled
+      baseScroll.addEventListener('scroll', function() {
+        if (isSyncing) {
+          return;
+        }
+
+        isSyncing = true;
+        prScroll.scrollTop = baseScroll.scrollTop;
+
+        // Reset flag after scroll event completes
+        requestAnimationFrame(() => {
+          isSyncing = false;
+        });
+      });
+
+      // Synchronize base scroll when PR is scrolled
+      prScroll.addEventListener('scroll', function() {
+        if (isSyncing) {
+          return;
+        }
+
+        isSyncing = true;
+        baseScroll.scrollTop = prScroll.scrollTop;
+
+        // Reset flag after scroll event completes
+        requestAnimationFrame(() => {
+          isSyncing = false;
+        });
+      });
     }
 
     function detectLanguage(filePath) {
@@ -556,7 +602,7 @@ ${WebviewStyles.getHtmlHead()}
             <div class="bg-vscode-input-bg border-b border-vscode-border px-4 py-2">
               <span class="text-sm font-medium text-vscode-fg">Base Version</span>
             </div>
-            <div class="flex-1 overflow-y-auto font-mono text-xs">
+            <div id="diff-base-scroll" class="flex-1 overflow-y-auto font-mono text-xs">
       \`;
 
       for (let i = 0; i < maxLines; i++) {
@@ -593,7 +639,7 @@ ${WebviewStyles.getHtmlHead()}
             <div class="bg-vscode-input-bg border-b border-vscode-border px-4 py-2">
               <span class="text-sm font-medium text-vscode-fg">PR Version</span>
             </div>
-            <div class="flex-1 overflow-y-auto font-mono text-xs">
+            <div id="diff-pr-scroll" class="flex-1 overflow-y-auto font-mono text-xs">
       \`;
 
       for (let i = 0; i < maxLines; i++) {
