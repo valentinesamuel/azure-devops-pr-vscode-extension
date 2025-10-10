@@ -1,4 +1,8 @@
-import { PullRequestFileChange, GitCommit } from '../../services/azureDevOpsApiClient';
+import {
+  PullRequestFileChange,
+  GitCommit,
+  PullRequestUpdate,
+} from '../../services/azureDevOpsApiClient';
 
 interface FileTreeNode {
   name: string;
@@ -232,12 +236,176 @@ export class TabContent {
       </div>`;
   }
 
-  static renderUpdatesContent(): string {
+  static renderUpdatesContent(updates: PullRequestUpdate[]): string {
+    const formatDate = (dateString: string): string => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    };
+
+    const formatFullDate = (dateString: string): string => {
+      const date = new Date(dateString);
+      return (
+        date.toLocaleDateString('en-US', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }) +
+        ' at ' +
+        date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: false,
+        })
+      );
+    };
+
+    const getAuthorInitials = (name: string): string => {
+      const parts = name.split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    };
+
     return `
-      <div id="updatesContent" class="tab-content bg-vscode-bg rounded-lg border border-vscode-border content-card p-8 hidden">
-        <h3 class="text-lg font-medium text-vscode-fg mb-4">Updates</h3>
-        <p class="text-vscode-fg opacity-60">Updates content would go here...</p>
+      <div id="updatesContent" class="tab-content bg-vscode-bg rounded-lg border border-vscode-border content-card hidden h-full flex flex-col">
+        ${
+          updates.length > 0
+            ? `
+          <div class="flex-1 overflow-y-auto">
+            <div class="divide-y divide-vscode-border">
+              ${updates
+                .map(
+                  (update, index) => `
+                <div class="p-6">
+                  <div class="flex items-start space-x-4">
+                    <!-- Update Number Badge -->
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-vscode-button-bg flex items-center justify-center text-vscode-button-fg text-sm font-semibold">
+                      ${updates.length - index}
+                    </div>
+
+                    <!-- Update Content -->
+                    <div class="flex-1 min-w-0">
+                      <!-- Update Header -->
+                      <div class="flex items-center space-x-2 mb-4">
+                        ${
+                          update.iteration.author?.imageUrl
+                            ? `<img src="${update.iteration.author.imageUrl}" alt="${update.iteration.author.displayName}" class="w-5 h-5 rounded-full" />`
+                            : `<div class="w-5 h-5 rounded-full bg-vscode-button-bg flex items-center justify-center text-vscode-button-fg text-xs font-semibold">
+                            ${update.iteration.author ? getAuthorInitials(update.iteration.author.displayName) : 'UN'}
+                          </div>`
+                        }
+                        <div class="text-sm text-vscode-fg">
+                          <span class="font-medium">${update.iteration.author?.displayName || 'Unknown'}</span>
+                          <span class="opacity-60"> pushed ${update.pushCount} commit${update.pushCount !== 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
+                      <div class="text-xs text-vscode-fg opacity-60 mb-3">${formatDate(update.iteration.createdDate)}</div>
+
+                      <!-- Commits in this update -->
+                      ${
+                        update.commits.length > 0
+                          ? `
+                        <div class="space-y-3 pl-4 border-l-2 border-vscode-border">
+                          ${update.commits
+                            .map(
+                              (commit) => `
+                            <div class="bg-vscode-input-bg bg-opacity-30 rounded p-3 hover:bg-opacity-50 transition-colors">
+                              <div class="flex items-start justify-between">
+                                <div class="flex-1 min-w-0">
+                                  <!-- Commit Message -->
+                                  <div class="text-sm font-medium text-vscode-fg mb-2">
+                                    ${commit.comment.split('\n')[0]}
+                                  </div>
+
+                                  <!-- Commit Metadata -->
+                                  <div class="flex items-center space-x-3 text-xs">
+                                    <!-- Commit Hash -->
+                                    <div class="flex items-center space-x-1 text-vscode-fg opacity-60">
+                                      <code class="font-mono bg-vscode-bg px-1.5 py-0.5 rounded">${commit.commitId.substring(0, 7)}</code>
+                                    </div>
+
+                                    <!-- Author Badge -->
+                                    <div class="flex items-center space-x-1">
+                                      <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold ${this.getAuthorBadgeColor(commit.author.name)}">
+                                        ${getAuthorInitials(commit.author.name)}
+                                      </span>
+                                      <span class="text-vscode-fg opacity-60">${commit.author.name}</span>
+                                    </div>
+
+                                    <!-- Timestamp -->
+                                    <span class="text-vscode-fg opacity-60">${formatFullDate(commit.author.date)}</span>
+                                  </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <button
+                                  onclick="copyCommitHash('${commit.commitId}')"
+                                  class="ml-3 p-1 rounded hover:bg-vscode-button-hover-bg text-vscode-fg opacity-60 hover:opacity-100 transition-opacity"
+                                  title="Copy commit hash"
+                                >
+                                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          `,
+                            )
+                            .join('')}
+                        </div>
+                      `
+                          : ''
+                      }
+                    </div>
+                  </div>
+                </div>
+              `,
+                )
+                .join('')}
+            </div>
+          </div>
+        `
+            : `
+          <!-- Empty State -->
+          <div class="flex-1 flex items-center justify-center text-vscode-fg opacity-60">
+            <div class="text-center py-12">
+              <svg class="w-16 h-16 mx-auto mb-4 text-vscode-border" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clip-rule="evenodd"/>
+              </svg>
+              <p class="text-sm font-medium mb-1">No updates yet</p>
+              <p class="text-xs opacity-70">Updates will appear here when changes are pushed to the PR</p>
+            </div>
+          </div>
+        `
+        }
       </div>`;
+  }
+
+  private static getAuthorBadgeColor(authorName: string): string {
+    // Generate a consistent color based on the author name
+    const colors = [
+      'bg-blue-500 text-white',
+      'bg-green-500 text-white',
+      'bg-purple-500 text-white',
+      'bg-pink-500 text-white',
+      'bg-yellow-500 text-gray-900',
+      'bg-red-500 text-white',
+      'bg-indigo-500 text-white',
+      'bg-teal-500 text-white',
+    ];
+
+    // Simple hash function to get consistent color for same author
+    let hash = 0;
+    for (let i = 0; i < authorName.length; i++) {
+      hash = authorName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
   }
 
   static renderCommitsContent(commits: GitCommit[]): string {

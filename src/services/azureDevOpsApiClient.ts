@@ -339,6 +339,12 @@ export interface GitCommit {
   url?: string;
 }
 
+export interface PullRequestUpdate {
+  iteration: PullRequestIteration;
+  commits: GitCommit[];
+  pushCount: number;
+}
+
 export interface FileDiff {
   path: string;
   changeType: 'add' | 'edit' | 'delete' | 'rename';
@@ -1370,6 +1376,87 @@ export class AzureDevOpsApiClient {
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error fetching PR commits: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches commits for a specific PR iteration
+   * @param project - The project name
+   * @param repositoryId - The repository ID
+   * @param pullRequestId - The pull request ID
+   * @param iterationId - The iteration ID
+   */
+  async getIterationCommits(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+    iterationId: number,
+  ): Promise<GitCommit[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/iterations/${iterationId}/commits?api-version=7.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch iteration commits: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { value?: GitCommit[] };
+      return data.value || [];
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching iteration commits: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches all PR updates (iterations with their commits)
+   * @param project - The project name
+   * @param repositoryId - The repository ID
+   * @param pullRequestId - The pull request ID
+   */
+  async getPullRequestUpdates(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+  ): Promise<PullRequestUpdate[]> {
+    try {
+      // First fetch all iterations
+      const iterations = await this.getPullRequestIterations(project, repositoryId, pullRequestId);
+
+      // Then fetch commits for each iteration
+      const updates: PullRequestUpdate[] = await Promise.all(
+        iterations.map(async (iteration) => {
+          const commits = await this.getIterationCommits(
+            project,
+            repositoryId,
+            pullRequestId,
+            iteration.id,
+          );
+
+          return {
+            iteration,
+            commits,
+            pushCount: commits.length,
+          };
+        }),
+      );
+
+      // Return in reverse order (newest first)
+      return updates.reverse();
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching PR updates: ${error.message}`);
       }
       throw error;
     }

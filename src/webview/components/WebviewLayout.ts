@@ -10,6 +10,7 @@ import {
   AzureDevOpsProfile,
   PullRequestFileChange,
   GitCommit,
+  PullRequestUpdate,
 } from '../../services/azureDevOpsApiClient';
 import { ThreadComponents } from './ThreadComponents';
 
@@ -20,6 +21,7 @@ export class WebviewLayout {
     userProfile?: AzureDevOpsProfile,
     fileChanges?: PullRequestFileChange[],
     commits?: GitCommit[],
+    updates?: PullRequestUpdate[],
   ): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -41,7 +43,7 @@ ${WebviewStyles.getHtmlHead()}
       <!-- Files Tab Content - Full Width -->
       ${TabContent.renderFilesContent(fileChanges || [])}
 
-      ${TabContent.renderUpdatesContent()}
+      ${TabContent.renderUpdatesContent(updates || [])}
 
       ${TabContent.renderCommitsContent(commits || [])}
 
