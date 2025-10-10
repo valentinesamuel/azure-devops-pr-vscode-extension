@@ -117,15 +117,15 @@ export class SidebarComponents {
     const avatarHtml = reviewer.imageUrl
       ? `<img
           src="${reviewer.imageUrl}"
-          class="w-6 h-6 rounded-full flex-shrink-0"
+          class="avatar-circle w-6 h-6"
           alt="${cleanName}"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
           style="display: block;"
         />
-        <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style="background-color: ${avatarColor}; display: none;">
+        <div class="avatar-circle w-6 h-6 text-white text-xs" style="background-color: ${avatarColor}; display: none;">
           ${initials}
         </div>`
-      : `<div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style="background-color: ${avatarColor}">
+      : `<div class="avatar-circle w-6 h-6 text-white text-xs" style="background-color: ${avatarColor}">
           ${initials}
         </div>`;
 

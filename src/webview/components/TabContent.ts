@@ -284,7 +284,7 @@ export class TabContent {
                 <div class="p-6">
                   <div class="flex items-start space-x-4">
                     <!-- Update Number Badge -->
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-vscode-button-bg flex items-center justify-center text-vscode-button-fg text-sm font-semibold">
+                    <div class="avatar-circle w-10 h-10 bg-vscode-button-bg text-vscode-button-fg text-sm">
                       ${updates.length - index}
                     </div>
 
@@ -292,13 +292,9 @@ export class TabContent {
                     <div class="flex-1 min-w-0">
                       <!-- Update Header -->
                       <div class="flex items-center space-x-2 mb-4">
-                        ${
-                          update.iteration.author?.imageUrl
-                            ? `<img src="${update.iteration.author.imageUrl}" alt="${update.iteration.author.displayName}" class="w-5 h-5 rounded-full" />`
-                            : `<div class="w-5 h-5 rounded-full bg-vscode-button-bg flex items-center justify-center text-vscode-button-fg text-xs font-semibold">
-                            ${update.iteration.author ? getAuthorInitials(update.iteration.author.displayName) : 'UN'}
-                          </div>`
-                        }
+                        <div class="avatar-circle w-7 h-7 bg-vscode-button-bg text-vscode-button-fg text-xs">
+                          ${update.iteration.author ? getAuthorInitials(update.iteration.author.displayName) : 'UN'}
+                        </div>
                         <div class="text-sm text-vscode-fg">
                           <span class="font-medium">${update.iteration.author?.displayName || 'Unknown'}</span>
                           <span class="opacity-60"> pushed ${update.pushCount} commit${update.pushCount !== 1 ? 's' : ''}</span>
@@ -331,7 +327,7 @@ export class TabContent {
 
                                     <!-- Author Badge -->
                                     <div class="flex items-center space-x-1">
-                                      <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold ${this.getAuthorBadgeColor(commit.author.name)}">
+                                      <span class="avatar-circle w-6 h-6 text-xs ${this.getAuthorBadgeColor(commit.author.name)}">
                                         ${getAuthorInitials(commit.author.name)}
                                       </span>
                                       <span class="text-vscode-fg opacity-60">${commit.author.name}</span>
@@ -462,7 +458,7 @@ export class TabContent {
                   <div class="flex items-start space-x-3">
                     <!-- Author Avatar -->
                     <div class="flex-shrink-0 mt-1">
-                      <div class="w-8 h-8 rounded-full bg-vscode-button-bg flex items-center justify-center text-vscode-button-fg text-xs font-semibold">
+                      <div class="avatar-circle w-8 h-8 bg-vscode-button-bg text-vscode-button-fg text-xs">
                         ${getAuthorInitials(commit.author.name)}
                       </div>
                     </div>

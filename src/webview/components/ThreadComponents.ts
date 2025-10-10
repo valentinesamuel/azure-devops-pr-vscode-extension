@@ -296,18 +296,18 @@ export class ThreadComponents {
       // Use image with fallback to initials if image fails to load
       return `<img
         src="${imageUrl}"
-        class="${sizeClass} rounded-full flex-shrink-0"
+        class="avatar-circle ${sizeClass}"
         alt="${displayName}"
         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
         style="display: block;"
       />
-      <div class="${sizeClass} rounded-full flex items-center justify-center text-vscode-fg text-xs flex-shrink-0" style="background-color: ${avatarColor}; display: none;">
+      <div class="avatar-circle ${sizeClass} text-vscode-fg text-xs" style="background-color: ${avatarColor}; display: none;">
         ${initials}
       </div>`;
     }
 
     // Fallback to initials
-    return `<div class="${sizeClass} rounded-full flex items-center justify-center text-vscode-fg text-xs flex-shrink-0" style="background-color: ${avatarColor}">
+    return `<div class="avatar-circle ${sizeClass} text-vscode-fg text-xs" style="background-color: ${avatarColor}">
       ${initials}
     </div>`;
   }
@@ -435,7 +435,7 @@ export class ThreadComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-6 h-6 ${iconBg} rounded-full flex items-center justify-center text-vscode-fg text-xs">
+          <div class="avatar-circle w-6 h-6 ${iconBg} text-vscode-fg text-xs">
             ${isApproval ? icon : this.renderAvatar(actualIdentity, 'small')}
           </div>
           <div class="flex items-center justify-between w-full">

@@ -177,6 +177,27 @@ export class WebviewStyles {
           animation: spin 1s linear infinite;
         }
 
+        /* Refresh icon spinning animation */
+        .refresh-icon.spinning {
+          animation: spin 1s linear infinite;
+        }
+
+        .refresh-icon {
+          transition: transform 0.2s ease;
+        }
+
+        /* Avatar/Gravatar consistent styling */
+        .avatar-circle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          flex-shrink: 0;
+          font-weight: 600;
+          line-height: 1;
+          padding: 0.35rem; /* Consistent internal padding */
+        }
+
         .sidebar-card {
           transition: box-shadow 0.3s ease, transform 0.3s ease;
         }

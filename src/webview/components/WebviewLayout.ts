@@ -56,6 +56,101 @@ ${WebviewStyles.getHtmlHead()}
   <script>
     const vscode = acquireVsCodeApi();
 
+    // Refresh Pull Request
+    function refreshPullRequest() {
+      const refreshBtn = document.getElementById('refreshPrButton');
+      const refreshIcon = document.getElementById('refreshIcon');
+      const refreshText = document.getElementById('refreshText');
+
+      if (!refreshBtn || !refreshIcon || !refreshText) return;
+
+      // Disable button during refresh
+      refreshBtn.disabled = true;
+      refreshBtn.style.opacity = '0.6';
+      refreshBtn.style.cursor = 'not-allowed';
+
+      // Animate the icon
+      refreshIcon.classList.add('spinning');
+      refreshText.textContent = 'Refreshing...';
+
+      // Show subtle loading overlay
+      showRefreshOverlay();
+
+      // Send refresh command to extension
+      vscode.postMessage({
+        command: 'refreshPR'
+      });
+    }
+
+    function showRefreshOverlay() {
+      const overlay = document.createElement('div');
+      overlay.id = 'refreshOverlay';
+      overlay.style.cssText = \`
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--vscode-editor-background);
+        opacity: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      \`;
+
+      const spinner = document.createElement('div');
+      spinner.innerHTML = \`
+        <div style="text-align: center;">
+          <div style="width: 50px; height: 50px; margin: 0 auto 1rem; position: relative;">
+            <div style="position: absolute; width: 100%; height: 100%; border: 3px solid transparent; border-top-color: var(--vscode-progressBar-background); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+          </div>
+          <div style="color: var(--vscode-foreground); font-size: 0.9rem; opacity: 0.8;">Refreshing data...</div>
+        </div>
+      \`;
+
+      overlay.appendChild(spinner);
+      document.body.appendChild(overlay);
+
+      // Fade in
+      setTimeout(() => {
+        overlay.style.opacity = '0.95';
+      }, 10);
+    }
+
+    function hideRefreshOverlay() {
+      const overlay = document.getElementById('refreshOverlay');
+      if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          overlay.remove();
+        }, 300);
+      }
+
+      // Re-enable button
+      const refreshBtn = document.getElementById('refreshPrButton');
+      const refreshIcon = document.getElementById('refreshIcon');
+      const refreshText = document.getElementById('refreshText');
+
+      if (refreshBtn && refreshIcon && refreshText) {
+        refreshBtn.disabled = false;
+        refreshBtn.style.opacity = '1';
+        refreshBtn.style.cursor = 'pointer';
+        refreshIcon.classList.remove('spinning');
+        refreshText.textContent = 'Refresh';
+      }
+    }
+
+    // Listen for refresh complete message
+    window.addEventListener('message', event => {
+      const message = event.data;
+      if (message.command === 'refreshComplete') {
+        hideRefreshOverlay();
+      }
+    });
+
     ${ChecksPanel.getScript()}
 
     ${TabNavigation.getScript()}

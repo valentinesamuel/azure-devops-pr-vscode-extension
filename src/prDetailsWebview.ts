@@ -104,6 +104,9 @@ export class PrDetailsWebviewProvider {
       this.activePanels.delete(pullRequest.id);
     });
 
+    // Show funny loading state immediately
+    panel.webview.html = this.getLoadingContent();
+
     // Fetch threads and statuses from Azure DevOps
     let threads: CommentThread[] = [];
     let fileChanges: PullRequestFileChange[] = [];
@@ -241,6 +244,9 @@ export class PrDetailsWebviewProvider {
     panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case 'refreshPR':
+            await this.handleRefreshPR(panel, pullRequest, authService, extensionUri);
+            break;
           case 'openInBrowser':
             if (pullRequest.repository) {
               const prUrl = `https://dev.azure.com/${pullRequest.repository.organization}/${pullRequest.repository.project}/_git/${pullRequest.repository.repository}/pullrequest/${pullRequest.id}`;
@@ -511,6 +517,346 @@ export class PrDetailsWebviewProvider {
       undefined,
       [],
     );
+  }
+
+  private static getLoadingContent(): string {
+    const loadingMessages = [
+      'Convincing the code to behave...',
+      'Asking Azure DevOps nicely for your data...',
+      'Hunting down those elusive commits...',
+      'Teaching the API manners...',
+      'Bribing the servers with cookies...',
+      'Negotiating with the cloud...',
+      'Downloading the internet (just your PR though)...',
+      'Performing code archaeology...',
+      'Summoning the commit spirits...',
+      'Translating git history from ancient scrolls...',
+      'Waiting for Azure DevOps to finish its coffee break...',
+      'Untangling the spaghetti code...',
+      'Asking ChatGPT where your commits went...',
+      'Reticulating splines...',
+      'Charging flux capacitor...',
+    ];
+
+    const randomMessage = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+      font-family: var(--vscode-font-family);
+      overflow: hidden;
+    }
+
+    .loading-container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 500px;
+    }
+
+    .spinner {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 2rem;
+      position: relative;
+    }
+
+    .spinner-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 4px solid transparent;
+      border-top-color: var(--vscode-progressBar-background);
+      border-radius: 50%;
+      animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    }
+
+    .spinner-ring:nth-child(1) {
+      animation-delay: -0.45s;
+    }
+
+    .spinner-ring:nth-child(2) {
+      animation-delay: -0.3s;
+      border-top-color: var(--vscode-button-background);
+    }
+
+    .spinner-ring:nth-child(3) {
+      animation-delay: -0.15s;
+      border-top-color: var(--vscode-textLink-foreground);
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      background: linear-gradient(
+        90deg,
+        var(--vscode-textLink-foreground),
+        var(--vscode-button-background),
+        var(--vscode-textLink-foreground)
+      );
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+      to {
+        background-position: 200% center;
+      }
+    }
+
+    .loading-message {
+      font-size: 1rem;
+      opacity: 0.8;
+      margin-bottom: 0.5rem;
+    }
+
+    .loading-dots {
+      font-size: 1.2rem;
+      font-weight: bold;
+      display: inline-block;
+      animation: blink 1.4s infinite;
+    }
+
+    .loading-dots::after {
+      content: '...';
+      animation: dots 1.4s steps(4, end) infinite;
+    }
+
+    @keyframes dots {
+      0%, 20% {
+        content: '.';
+      }
+      40% {
+        content: '..';
+      }
+      60%, 100% {
+        content: '...';
+      }
+    }
+
+    .pr-icon {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 1.5rem;
+      opacity: 0.6;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .fun-fact {
+      margin-top: 2rem;
+      padding: 1rem;
+      background-color: var(--vscode-input-background);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      opacity: 0.7;
+      border-left: 3px solid var(--vscode-textLink-foreground);
+    }
+
+    .fun-fact-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--vscode-textLink-foreground);
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-container">
+    <svg class="pr-icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M7.177 3.073L9.573.677A2.25 2.25 0 0 1 13.192.646L15.293.829A2.25 2.25 0 0 1 16.92 2.456L17.103 4.557A2.25 2.25 0 0 1 16.097 6.578L15.112 7.563L8.163 14.512L6.099 12.448L13.048 5.5L12.866 3.398L10.462 3.215L7.177 6.5L9.241 8.564L8.534 9.271L7.534 10.271L6.241 8.978L3.241 11.978L5.305 14.042L4.598 14.75L3.891 15.457L1.827 13.393L.12 15.1A2.25 2.25 0 0 0 .152 18.719L.335 20.82A2.25 2.25 0 0 0 1.962 22.447L4.063 22.63A2.25 2.25 0 0 0 6.084 21.624L7.891 19.817L5.827 17.753L8.827 14.753L10.12 16.046L11.12 15.046L11.827 14.339L9.763 12.275L12.763 9.275L15.827 12.339L17.891 10.275L14.827 7.211L17.827 4.211L19.12 5.504L20.12 4.504L20.827 3.797L18.763 1.733L20.57.926A2.25 2.25 0 0 1 24.189.958L26.29 1.141A2.25 2.25 0 0 1 27.917 2.768L28.1 4.869A2.25 2.25 0 0 1 27.094 6.89L23.809 10.175L21.745 8.111L18.745 11.111L20.809 13.175L18.745 15.239L16.681 13.175L13.681 16.175L15.745 18.239L14.745 19.239L14.038 19.946L11.974 17.882L8.974 20.882L11.038 22.946L9.331 24.653A2.25 2.25 0 0 1 5.712 24.621L3.611 24.438A2.25 2.25 0 0 1 1.984 22.811L1.801 20.71A2.25 2.25 0 0 1 2.807 18.689L4.514 16.982L6.578 19.046L9.578 16.046L7.514 13.982L10.514 10.982L12.578 13.046L13.578 12.046L14.285 11.339L12.221 9.275L15.221 6.275L17.285 8.339L19.349 6.275L17.285 4.211L20.57 0.926Z"/>
+    </svg>
+
+    <div class="spinner">
+      <div class="spinner-ring"></div>
+      <div class="spinner-ring"></div>
+      <div class="spinner-ring"></div>
+    </div>
+
+    <h1 class="loading-title">Loading Pull Request</h1>
+    <p class="loading-message">${randomMessage}</p>
+    <div class="loading-dots"></div>
+
+    <div class="fun-fact">
+      <div class="fun-fact-title">💡 Pro Tip</div>
+      <div>While you wait: Remember, the best code is no code at all. But since we're already here... ☕</div>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  private static async handleRefreshPR(
+    panel: vscode.WebviewPanel,
+    pullRequest: PullRequest,
+    authService: AuthService,
+    extensionUri: vscode.Uri,
+  ) {
+    try {
+      // Refetch all PR data
+      let threads: CommentThread[] = [];
+      let fileChanges: PullRequestFileChange[] = [];
+      let commits: GitCommit[] = [];
+      let updates: PullRequestUpdate[] = [];
+      let userProfile = authService.getUserProfileService().getStoredProfile();
+
+      if (pullRequest.repository) {
+        const pat = await authService.getPersonalAccessToken();
+        if (pat) {
+          const apiClient = new AzureDevOpsApiClient({
+            organization: pullRequest.repository.organization,
+            pat,
+          });
+
+          // Fetch all data in parallel for better performance
+          const [threadsResult, statusesResult, fileChangesResult, commitsResult, updatesResult] =
+            await Promise.allSettled([
+              apiClient.getPullRequestThreads(
+                pullRequest.repository.project,
+                pullRequest.repository.repository,
+                pullRequest.id,
+              ),
+              apiClient.getPullRequestStatuses(
+                pullRequest.repository.project,
+                pullRequest.repository.repository,
+                pullRequest.id,
+              ),
+              apiClient.getPullRequestFileChanges(
+                pullRequest.repository.project,
+                pullRequest.repository.repository,
+                pullRequest.id,
+              ),
+              apiClient.getPullRequestCommits(
+                pullRequest.repository.project,
+                pullRequest.repository.repository,
+                pullRequest.id,
+              ),
+              apiClient.getPullRequestUpdates(
+                pullRequest.repository.project,
+                pullRequest.repository.repository,
+                pullRequest.id,
+              ),
+            ]);
+
+          // Extract results
+          if (threadsResult.status === 'fulfilled') {
+            threads = threadsResult.value;
+          }
+          if (statusesResult.status === 'fulfilled') {
+            pullRequest.statuses = statusesResult.value;
+          }
+          if (fileChangesResult.status === 'fulfilled') {
+            fileChanges = fileChangesResult.value;
+          }
+          if (commitsResult.status === 'fulfilled') {
+            commits = commitsResult.value;
+          }
+          if (updatesResult.status === 'fulfilled') {
+            updates = updatesResult.value;
+          }
+
+          // Add synthetic PR created thread
+          const currentProfile = userProfile;
+          const isCurrentUser = currentProfile?.emailAddress === pullRequest.author;
+          const creatorDisplayName = isCurrentUser
+            ? currentProfile?.displayName || pullRequest.author.split('@')[0]
+            : pullRequest.author.split('@')[0];
+
+          const prCreatedThread: CommentThread = {
+            id: -1,
+            publishedDate: pullRequest.createdDate.toISOString(),
+            comments: [
+              {
+                id: -1,
+                author: {
+                  displayName: creatorDisplayName,
+                  id: 'creator',
+                  uniqueName: pullRequest.author,
+                },
+                content: `${creatorDisplayName} created the pull request`,
+                publishedDate: pullRequest.createdDate.toISOString(),
+                commentType: 'system',
+              },
+            ],
+            properties: {
+              CodeReviewThreadType: {
+                $value: 'PullRequestCreated',
+              },
+            },
+          };
+
+          threads.push(prCreatedThread);
+
+          // Enrich reviewer data
+          if (pullRequest.reviewersDetailed) {
+            pullRequest.reviewersDetailed = this.enrichReviewersWithTeamMembers(
+              pullRequest.reviewersDetailed,
+              threads,
+            );
+          }
+        }
+      }
+
+      // Update the webview content
+      panel.webview.html = this.getWebviewContent(
+        panel.webview,
+        extensionUri,
+        pullRequest,
+        threads,
+        userProfile,
+        fileChanges,
+        commits,
+        updates,
+      );
+
+      // Notify webview that refresh is complete
+      panel.webview.postMessage({
+        command: 'refreshComplete',
+      });
+
+      vscode.window.showInformationMessage(`PR #${pullRequest.id} refreshed successfully`);
+    } catch (error) {
+      console.error('Failed to refresh PR:', error);
+      vscode.window.showErrorMessage(
+        `Failed to refresh PR: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+
+      // Still notify webview to hide the loading overlay
+      panel.webview.postMessage({
+        command: 'refreshComplete',
+      });
+    }
   }
 
   private static getWebviewContent(

@@ -29,15 +29,15 @@ export class TimelineComponents {
     const avatarHtml = userProfile?.imageUrl
       ? `<img
           src="${userProfile.imageUrl}"
-          class="w-8 h-8 rounded-full flex-shrink-0"
+          class="avatar-circle w-8 h-8"
           alt="${userProfile.displayName}"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
           style="display: block;"
         />
-        <div class="w-8 h-8 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-sm" style="display: none;">
+        <div class="avatar-circle w-8 h-8 bg-vscode-success text-vscode-fg text-sm" style="display: none;">
           ${initials}
         </div>`
-      : `<div class="w-8 h-8 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-sm">
+      : `<div class="avatar-circle w-8 h-8 bg-vscode-success text-vscode-fg text-sm">
           ${initials}
         </div>`;
 
@@ -78,17 +78,17 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-8 h-8 bg-vscode-info rounded-full flex items-center justify-center text-vscode-fg text-sm font-medium">2</div>
+          <div class="avatar-circle w-8 h-8 bg-vscode-info text-vscode-fg text-sm font-medium">2</div>
           <div class="flex-1">
             <div class="flex items-center space-x-2 mb-2">
-              <div class="w-6 h-6 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-xs">VS</div>
+              <div class="avatar-circle w-6 h-6 bg-vscode-success text-vscode-fg text-xs">VS</div>
               <span class="text-vscode-fg font-medium">Valentine Samuel resolved merge conflicts</span>
               <span class="text-vscode-fg opacity-60 text-xs">19 Sept</span>
             </div>
             <div class="bg-vscode-bg rounded-lg border border-vscode-border p-4">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center space-x-2">
-                  <div class="w-6 h-6 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-xs">VS</div>
+                  <div class="avatar-circle w-6 h-6 bg-vscode-success text-vscode-fg text-xs">VS</div>
                   <span class="text-vscode-fg text-sm">Valentine Samuel</span>
                   <span class="text-vscode-fg opacity-60 text-xs">19 Sept</span>
                 </div>
@@ -132,7 +132,7 @@ export class TimelineComponents {
               </div>
               <div class="border-t border-vscode-border pt-3">
                 <div class="flex items-center space-x-3">
-                  <div class="w-6 h-6 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-xs">VS</div>
+                  <div class="avatar-circle w-6 h-6 bg-vscode-success text-vscode-fg text-xs">VS</div>
                   <input type="text" placeholder="Write a reply..." class="flex-1 bg-vscode-input-bg border border-vscode-input-border rounded px-3 py-2 text-sm text-vscode-fg placeholder-vscode-fg opacity-60 focus:outline-none focus:border-vscode-link"/>
                   <button class="bg-gray-600 text-white px-3 py-2 rounded text-sm font-medium">Reactivate</button>
                 </div>
@@ -148,13 +148,13 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-8 h-8 bg-vscode-info rounded-full flex items-center justify-center text-vscode-fg text-sm font-medium">
+          <div class="avatar-circle w-8 h-8 bg-vscode-info text-vscode-fg text-sm font-medium">
             2
           </div>
           <div class="flex-1">
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center space-x-2">
-                <div class="w-6 h-6 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-xs">
+                <div class="avatar-circle w-6 h-6 bg-vscode-success text-vscode-fg text-xs">
                   VS
                 </div>
                 <span class="text-vscode-fg font-medium">Valentine Samuel pushed 1 commit</span>
@@ -168,7 +168,7 @@ export class TimelineComponents {
               </div>
               <div class="flex items-center space-x-3 text-xs text-vscode-fg opacity-60">
                 <span class="font-mono bg-vscode-bg px-2 py-1 rounded">1d1befdd</span>
-                <div class="w-5 h-5 bg-orange-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                <div class="avatar-circle w-5 h-5 bg-orange-600 text-white text-xs font-medium">
                   V
                 </div>
                 <span>valentinesamuel</span>
@@ -185,14 +185,14 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-6 h-6 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-xs">
+          <div class="avatar-circle w-6 h-6 bg-vscode-success text-vscode-fg text-xs">
             <svg class="icon-check" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
             </svg>
           </div>
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center space-x-2">
-              <div class="w-6 h-6 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-xs">
+              <div class="avatar-circle w-6 h-6 bg-vscode-success text-vscode-fg text-xs">
                 VS
               </div>
               <span class="text-vscode-fg text-sm">Valentine Samuel approved the pull request</span>
@@ -208,7 +208,7 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center text-white text-xs">
+          <div class="avatar-circle w-6 h-6 bg-orange-600 text-white text-xs">
             SA
           </div>
           <div class="flex items-center justify-between w-full">
@@ -269,14 +269,14 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-8 h-8 bg-vscode-info rounded-full flex items-center justify-center text-vscode-fg text-sm font-medium">
+          <div class="avatar-circle w-8 h-8 bg-vscode-info text-vscode-fg text-sm font-medium">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
             </svg>
           </div>
           <div class="flex-1">
             <div class="flex items-center space-x-2 mb-2">
-              <div class="w-6 h-6 rounded-full flex items-center justify-center text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
+              <div class="avatar-circle w-6 h-6 text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
                 ${comment.avatarInitials}
               </div>
               <span class="text-vscode-fg font-medium">${comment.author} resolved merge conflicts</span>
@@ -285,7 +285,7 @@ export class TimelineComponents {
             <div class="bg-vscode-bg rounded-lg border border-vscode-border p-4">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center space-x-2">
-                  <div class="w-6 h-6 rounded-full flex items-center justify-center text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
+                  <div class="avatar-circle w-6 h-6 text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
                     ${comment.avatarInitials}
                   </div>
                   <span class="text-vscode-fg text-sm">${comment.author}</span>
@@ -315,7 +315,7 @@ export class TimelineComponents {
               </div>
               <div class="border-t border-vscode-border pt-3">
                 <div class="flex items-center space-x-3">
-                  <div class="w-6 h-6 rounded-full flex items-center justify-center text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
+                  <div class="avatar-circle w-6 h-6 text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
                     ${comment.avatarInitials}
                   </div>
                   <input type="text" placeholder="Write a reply..." class="flex-1 bg-vscode-input-bg border border-vscode-input-border rounded px-3 py-2 text-sm text-vscode-fg placeholder-vscode-fg opacity-60 focus:outline-none focus:border-vscode-link"/>
@@ -333,14 +333,14 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-6 h-6 rounded-full flex items-center justify-center text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
+          <div class="avatar-circle w-6 h-6 text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
             ${comment.avatarInitials}
           </div>
           <div class="flex-1">
             <div class="bg-vscode-bg rounded-lg border border-vscode-border p-4">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center space-x-2">
-                  <div class="w-6 h-6 rounded-full flex items-center justify-center text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
+                  <div class="avatar-circle w-6 h-6 text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
                     ${comment.avatarInitials}
                   </div>
                   <span class="text-vscode-fg text-sm">${comment.author}</span>
@@ -358,7 +358,7 @@ export class TimelineComponents {
               <div class="text-sm text-vscode-fg mb-3">${comment.content}</div>
               <div class="border-t border-vscode-border pt-3">
                 <div class="flex items-center space-x-3">
-                  <div class="w-6 h-6 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-xs">VS</div>
+                  <div class="avatar-circle w-6 h-6 bg-vscode-success text-vscode-fg text-xs">VS</div>
                   <input type="text" placeholder="Write a reply..." class="flex-1 bg-vscode-input-bg border border-vscode-input-border rounded px-3 py-2 text-sm text-vscode-fg placeholder-vscode-fg opacity-60 focus:outline-none focus:border-vscode-link"/>
                   <button class="bg-vscode-info hover:bg-blue-600 text-vscode-fg px-3 py-2 rounded text-sm font-medium transition-colors">Reply</button>
                 </div>
@@ -374,7 +374,7 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-6 h-6 rounded-full flex items-center justify-center text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
+          <div class="avatar-circle w-6 h-6 text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
             ${comment.avatarInitials}
           </div>
           <div class="flex items-center justify-between w-full">
@@ -392,7 +392,7 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-8 h-8 bg-vscode-info rounded-full flex items-center justify-center text-vscode-fg text-sm font-medium">
+          <div class="avatar-circle w-8 h-8 bg-vscode-info text-vscode-fg text-sm font-medium">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
             </svg>
@@ -400,7 +400,7 @@ export class TimelineComponents {
           <div class="flex-1">
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center space-x-2">
-                <div class="w-6 h-6 rounded-full flex items-center justify-center text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
+                <div class="avatar-circle w-6 h-6 text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
                   ${comment.avatarInitials}
                 </div>
                 <span class="text-vscode-fg font-medium">${comment.author} pushed 1 commit</span>
@@ -411,7 +411,7 @@ export class TimelineComponents {
               <div class="text-sm text-vscode-fg mb-2">${comment.content}</div>
               <div class="flex items-center space-x-3 text-xs text-vscode-fg opacity-60">
                 <span class="font-mono bg-vscode-bg px-2 py-1 rounded">${Math.random().toString(36).substr(2, 8)}</span>
-                <div class="w-5 h-5 rounded-full flex items-center justify-center text-vscode-fg text-xs font-medium" style="background-color: ${comment.avatarColor}">
+                <div class="avatar-circle w-5 h-5 text-vscode-fg text-xs font-medium" style="background-color: ${comment.avatarColor}">
                   ${comment.avatarInitials}
                 </div>
                 <span>${comment.author.toLowerCase().replace(' ', '')}</span>
@@ -428,12 +428,12 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-6 h-6 bg-vscode-success rounded-full flex items-center justify-center text-vscode-fg text-xs">
+          <div class="avatar-circle w-6 h-6 bg-vscode-success text-vscode-fg text-xs">
             ${Icons.check}
           </div>
           <div class="flex items-center justify-between w-full">
             <div class="flex items-center space-x-2">
-              <div class="w-6 h-6 rounded-full flex items-center justify-center text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
+              <div class="avatar-circle w-6 h-6 text-vscode-fg text-xs" style="background-color: ${comment.avatarColor}">
                 ${comment.avatarInitials}
               </div>
               <span class="text-vscode-fg text-sm">${comment.content}</span>
@@ -449,7 +449,7 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: ${comment.avatarColor}">
+          <div class="avatar-circle w-6 h-6 text-white text-xs" style="background-color: ${comment.avatarColor}">
             ${comment.avatarInitials}
           </div>
           <div class="flex items-center justify-between w-full">
@@ -474,7 +474,7 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-6 h-6 ${iconColor} rounded-full flex items-center justify-center text-vscode-fg text-xs">
+          <div class="avatar-circle w-6 h-6 ${iconColor} text-vscode-fg text-xs">
             ${icon}
           </div>
           <div class="flex-1">
@@ -504,7 +504,7 @@ export class TimelineComponents {
       <div class="relative">
         <div class="timeline-dot absolute left-4 top-6"></div>
         <div class="flex items-start space-x-4 ml-8">
-          <div class="w-6 h-6 ${iconColor} rounded-full flex items-center justify-center text-vscode-fg text-xs">
+          <div class="avatar-circle w-6 h-6 ${iconColor} text-vscode-fg text-xs">
             ${icon}
           </div>
           <div class="flex-1">
