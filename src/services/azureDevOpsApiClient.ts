@@ -114,6 +114,7 @@ export interface CommentIdentity {
   id: string;
   uniqueName: string;
   imageUrl?: string;
+  isContainer?: boolean;
 }
 
 export interface IdentityRefWithVote extends CommentIdentity {
@@ -1457,6 +1458,161 @@ export class AzureDevOpsApiClient {
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error fetching PR updates: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Searches for identities (users and groups) in Azure DevOps using the modern Graph API
+   * @param query - The search query
+   * @param project - Optional: The project name to scope the search
+   */
+  async searchIdentities(query: string, project?: string): Promise<CommentIdentity[]> {
+    try {
+      console.log('=== Identity Search Debug (Graph API) ===');
+      console.log('Query:', query);
+      console.log('Organization:', this.organization);
+
+      // Use Azure DevOps Graph API Subject Query endpoint
+      const baseUrl = `https://vssps.dev.azure.com/${this.organization}`;
+      const url = `${baseUrl}/_apis/graph/subjectquery?api-version=7.1-preview.1`;
+
+      console.log('Request URL:', url);
+
+      // Prepare the request body for subject query
+      const requestBody = {
+        query: query,
+        subjectKind: ['User', 'Group'], // Search for both users and groups
+      };
+
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(
+          `Failed to search identities: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { value?: any[] };
+      console.log('Raw response data:', JSON.stringify(data, null, 2));
+
+      const identities = data.value || [];
+      console.log('Number of identities found:', identities.length);
+
+      if (identities.length > 0) {
+        console.log('First identity raw:', JSON.stringify(identities[0], null, 2));
+      }
+
+      // Transform to our identity interface and fetch avatar images with authentication
+      const transformed = await Promise.all(
+        identities.map(async (identity) => {
+          // Graph API returns descriptor-based data
+          let avatarDataUri: string | undefined;
+
+          // Fetch avatar image with authentication if URL exists
+          if (identity._links?.avatar?.href) {
+            try {
+              console.log('Fetching avatar for:', identity.displayName);
+              const avatarResponse = await fetch(identity._links.avatar.href, {
+                method: 'GET',
+                headers: this.headers,
+              });
+
+              if (avatarResponse.ok) {
+                const blob = await avatarResponse.blob();
+                const buffer = await blob.arrayBuffer();
+                const base64 = Buffer.from(buffer).toString('base64');
+                const contentType = avatarResponse.headers.get('content-type') || 'image/png';
+                avatarDataUri = `data:${contentType};base64,${base64}`;
+                console.log('Avatar fetched successfully for:', identity.displayName);
+              } else {
+                console.log(
+                  'Failed to fetch avatar for:',
+                  identity.displayName,
+                  avatarResponse.status,
+                );
+              }
+            } catch (error) {
+              console.log('Error fetching avatar for:', identity.displayName, error);
+            }
+          }
+
+          const result = {
+            id: identity.descriptor || identity.subjectDescriptor,
+            displayName: identity.displayName || identity.principalName || 'Unknown',
+            uniqueName: identity.mailAddress || identity.principalName || '',
+            imageUrl: avatarDataUri, // Use base64 data URI instead of URL
+            isContainer: identity.subjectKind === 'Group',
+          };
+          console.log('Transformed identity:', result);
+          return result;
+        }),
+      );
+
+      console.log('=== End Identity Search Debug ===');
+      return transformed;
+    } catch (error) {
+      console.error('=== Identity Search Error ===');
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      } else {
+        console.error('Unknown error:', error);
+      }
+      console.error('=== End Identity Search Error ===');
+      return [];
+    }
+  }
+
+  /**
+   * Adds a reviewer to a pull request
+   * @param project - The project name
+   * @param repositoryId - The repository ID
+   * @param pullRequestId - The pull request ID
+   * @param reviewerId - The reviewer's ID (user or group)
+   * @param isRequired - Whether the reviewer is required
+   */
+  async addReviewerToPR(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+    reviewerId: string,
+    isRequired: boolean = false,
+  ): Promise<void> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/reviewers/${reviewerId}?api-version=7.1`;
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: this.headers,
+        body: JSON.stringify({
+          vote: 0, // 0 = no vote initially
+          isRequired: isRequired,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to add reviewer: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      console.log(`Successfully added reviewer ${reviewerId} to PR ${pullRequestId}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        vscode.window.showErrorMessage(`Error adding reviewer: ${error.message}`);
       }
       throw error;
     }

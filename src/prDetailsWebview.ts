@@ -512,6 +512,97 @@ export class PrDetailsWebviewProvider {
               );
             }
             break;
+          case 'searchIdentities':
+            try {
+              console.log('=== Message Handler: searchIdentities ===');
+              console.log('Query:', message.query);
+              console.log('Type:', message.type);
+              console.log('Has repository:', !!pullRequest.repository);
+
+              if (pullRequest.repository) {
+                const pat = await authService.getPersonalAccessToken();
+                console.log('Has PAT:', !!pat);
+
+                if (pat) {
+                  const apiClient = new AzureDevOpsApiClient({
+                    organization: pullRequest.repository.organization,
+                    pat,
+                  });
+
+                  // Search for identities
+                  console.log('Calling searchIdentities API...');
+                  const results = await apiClient.searchIdentities(
+                    message.query,
+                    pullRequest.repository.project,
+                  );
+
+                  console.log('Search results count:', results.length);
+                  console.log('Results:', JSON.stringify(results, null, 2));
+
+                  // Send results back to webview
+                  console.log('Sending results to webview...');
+                  panel.webview.postMessage({
+                    command: 'searchResultsResponse',
+                    results: results,
+                    type: message.type,
+                  });
+                  console.log('=== End Message Handler ===');
+                } else {
+                  console.error('No PAT available');
+                }
+              } else {
+                console.error('No repository information');
+              }
+            } catch (error) {
+              console.error('=== Message Handler Error ===');
+              console.error('Error searching identities:', error);
+              if (error instanceof Error) {
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+              }
+              // Send empty results on error
+              panel.webview.postMessage({
+                command: 'searchResultsResponse',
+                results: [],
+                type: message.type,
+              });
+              console.error('=== End Message Handler Error ===');
+            }
+            break;
+          case 'addReviewerToPR':
+            try {
+              if (pullRequest.repository) {
+                const pat = await authService.getPersonalAccessToken();
+                if (pat) {
+                  const apiClient = new AzureDevOpsApiClient({
+                    organization: pullRequest.repository.organization,
+                    pat,
+                  });
+
+                  // Add the reviewer to the PR
+                  const isRequired = message.type === 'required';
+                  await apiClient.addReviewerToPR(
+                    pullRequest.repository.project,
+                    pullRequest.repository.repository,
+                    message.prId,
+                    message.identity.id,
+                    isRequired,
+                  );
+
+                  vscode.window.showInformationMessage(
+                    `Successfully added ${message.identity.displayName} as ${message.type} reviewer`,
+                  );
+
+                  // Refresh the PR to show the new reviewer
+                  await this.handleRefreshPR(panel, pullRequest, authService, extensionUri);
+                }
+              }
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Failed to add reviewer: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              );
+            }
+            break;
         }
       },
       undefined,

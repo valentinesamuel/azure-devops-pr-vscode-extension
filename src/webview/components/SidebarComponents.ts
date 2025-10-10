@@ -147,50 +147,113 @@ export class SidebarComponents {
   }
 
   static renderReviewersSection(reviewers?: Reviewer[]): string {
-    if (!reviewers || reviewers.length === 0) {
-      return `
-        <div class="mb-8">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-semibold text-vscode-fg">Reviewers</h3>
-            <button class="text-vscode-link text-sm hover:underline font-medium">Add</button>
-          </div>
-          <div class="p-4 rounded-lg border border-vscode-input-border bg-vscode-input-bg">
-            <div class="text-sm text-vscode-fg">No reviewers</div>
-          </div>
-        </div>`;
-    }
-
-    const requiredReviewers = reviewers.filter((r) => r.isRequired);
-    const optionalReviewers = reviewers.filter((r) => !r.isRequired);
+    const requiredReviewers = reviewers?.filter((r) => r.isRequired) || [];
+    const optionalReviewers = reviewers?.filter((r) => !r.isRequired) || [];
 
     return `
       <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-sm font-bold text-vscode-fg flex items-center gap-2">
-            <span>👥</span>
             <span>Reviewers</span>
           </h3>
-          <button class="text-azure text-sm hover:underline font-medium transition-all hover:text-azure/80">Add</button>
+          <div class="relative reviewer-dropdown-container">
+            <button class="text-azure text-sm font-medium transition-all hover:text-azure/80 flex items-center gap-1 reviewer-dropdown-trigger">
+              Add
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+            <div class="reviewer-dropdown-menu hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-vscode-dropdown-background border border-vscode-dropdown-border z-50">
+              <div class="py-1">
+                <button class="reviewer-dropdown-item w-full text-left px-4 py-2 text-sm text-vscode-dropdown-foreground hover:bg-vscode-list-hoverBackground transition-colors" data-type="required">
+                  Add required reviewer
+                </button>
+                <button class="reviewer-dropdown-item w-full text-left px-4 py-2 text-sm text-vscode-dropdown-foreground hover:bg-vscode-list-hoverBackground transition-colors" data-type="optional">
+                  Add optional reviewer
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="space-y-3">
-          ${
-            requiredReviewers.length > 0
-              ? `
-            <div class="text-xs text-vscode-fg font-bold uppercase tracking-wider opacity-60 mb-2">Required</div>
-            ${requiredReviewers.map((r) => this.renderReviewer(r)).join('')}
-          `
-              : ''
-          }
+        <div class="space-y-6">
+          <!-- Required Reviewers Section -->
+          <div id="required-reviewers-section">
+            <div class="text-sm text-vscode-fg font-semibold mb-3">Required</div>
 
-          ${
-            optionalReviewers.length > 0
-              ? `
-            <div class="text-xs text-vscode-fg font-bold uppercase tracking-wider opacity-60 ${requiredReviewers.length > 0 ? 'mt-6' : ''} mb-2">Optional</div>
-            ${optionalReviewers.map((r) => this.renderReviewer(r)).join('')}
-          `
-              : ''
-          }
+            <!-- Search Input for Required Reviewers -->
+            <div id="required-search-container" class="hidden mb-3">
+              <div class="relative">
+                <input
+                  type="text"
+                  id="required-reviewer-search"
+                  placeholder="Search for users or groups"
+                  class="w-full px-3 py-2 pr-8 text-sm bg-vscode-input-bg text-vscode-input-fg border border-vscode-input-border rounded focus:outline-none focus:border-azure"
+                  autocomplete="off"
+                />
+                <button
+                  onclick="cancelReviewerSearch('required')"
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 text-vscode-fg opacity-60 hover:opacity-100"
+                >
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Search Results -->
+              <div id="required-search-results" class="hidden mt-2 max-h-64 overflow-y-auto bg-vscode-dropdown-background border border-vscode-dropdown-border rounded shadow-lg">
+                <!-- Results will be populated here -->
+              </div>
+            </div>
+
+            ${
+              requiredReviewers.length > 0
+                ? `<div class="space-y-3" id="required-reviewers-list">
+                    ${requiredReviewers.map((r) => this.renderReviewer(r)).join('')}
+                  </div>`
+                : `<div class="text-sm text-vscode-fg opacity-60 text-center py-4" id="required-empty-state">No required reviewers</div>`
+            }
+          </div>
+
+          <!-- Optional Reviewers Section -->
+          <div id="optional-reviewers-section">
+            <div class="text-sm text-vscode-fg font-semibold mb-3">Optional</div>
+
+            <!-- Search Input for Optional Reviewers -->
+            <div id="optional-search-container" class="hidden mb-3">
+              <div class="relative">
+                <input
+                  type="text"
+                  id="optional-reviewer-search"
+                  placeholder="Search for users or groups"
+                  class="w-full px-3 py-2 pr-8 text-sm bg-vscode-input-bg text-vscode-input-fg border border-vscode-input-border rounded focus:outline-none focus:border-azure"
+                  autocomplete="off"
+                />
+                <button
+                  onclick="cancelReviewerSearch('optional')"
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 text-vscode-fg opacity-60 hover:opacity-100"
+                >
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Search Results -->
+              <div id="optional-search-results" class="hidden mt-2 max-h-64 overflow-y-auto bg-vscode-dropdown-background border border-vscode-dropdown-border rounded shadow-lg">
+                <!-- Results will be populated here -->
+              </div>
+            </div>
+
+            ${
+              optionalReviewers.length > 0
+                ? `<div class="space-y-3" id="optional-reviewers-list">
+                    ${optionalReviewers.map((r) => this.renderReviewer(r)).join('')}
+                  </div>`
+                : `<div class="text-sm text-vscode-fg opacity-60 text-center py-4" id="optional-empty-state">No optional reviewers</div>`
+            }
+          </div>
         </div>
       </div>`;
   }

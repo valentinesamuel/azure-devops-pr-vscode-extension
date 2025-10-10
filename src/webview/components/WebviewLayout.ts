@@ -1019,6 +1019,279 @@ ${WebviewStyles.getHtmlHead()}
         displayDiv.classList.remove('hidden');
       }
     }
+
+    // Reviewer Dropdown and Search Functions
+    let searchDebounceTimer = null;
+
+    function setupReviewerDropdown() {
+      const trigger = document.querySelector('.reviewer-dropdown-trigger');
+      const menu = document.querySelector('.reviewer-dropdown-menu');
+      const container = document.querySelector('.reviewer-dropdown-container');
+
+      if (!trigger || !menu || !container) return;
+
+      // Toggle dropdown on trigger click
+      trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        menu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!container.contains(e.target)) {
+          menu.classList.add('hidden');
+        }
+      });
+
+      // Handle dropdown item clicks
+      const dropdownItems = menu.querySelectorAll('.reviewer-dropdown-item');
+      dropdownItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const reviewerType = this.getAttribute('data-type');
+
+          // Show the search input in the appropriate section
+          showReviewerSearch(reviewerType);
+
+          // Close the dropdown
+          menu.classList.add('hidden');
+        });
+      });
+    }
+
+    function showReviewerSearch(type) {
+      const searchContainer = document.getElementById(\`\${type}-search-container\`);
+      const searchInput = document.getElementById(\`\${type}-reviewer-search\`);
+
+      if (!searchContainer || !searchInput) return;
+
+      // Show the search container
+      searchContainer.classList.remove('hidden');
+
+      // Focus on the input
+      searchInput.focus();
+
+      // Setup search input listener if not already set
+      if (!searchInput.hasAttribute('data-listener-added')) {
+        searchInput.setAttribute('data-listener-added', 'true');
+
+        searchInput.addEventListener('input', function(e) {
+          const query = e.target.value.trim();
+
+          // Clear existing timer
+          if (searchDebounceTimer) {
+            clearTimeout(searchDebounceTimer);
+          }
+
+          // If query is empty, hide results
+          if (!query) {
+            hideSearchResults(type);
+            return;
+          }
+
+          // Require at least 2 characters before searching
+          if (query.length < 2) {
+            const searchResults = document.getElementById(\`\${type}-search-results\`);
+            if (searchResults) {
+              searchResults.classList.remove('hidden');
+              searchResults.innerHTML = \`
+                <div class="p-4 text-center text-sm text-vscode-fg opacity-60">
+                  Type at least 2 characters to search
+                </div>
+              \`;
+            }
+            return;
+          }
+
+          // Debounce search with 800ms delay
+          searchDebounceTimer = setTimeout(() => {
+            searchIdentities(query, type);
+          }, 800);
+        });
+      }
+    }
+
+    function cancelReviewerSearch(type) {
+      const searchContainer = document.getElementById(\`\${type}-search-container\`);
+      const searchInput = document.getElementById(\`\${type}-reviewer-search\`);
+      const searchResults = document.getElementById(\`\${type}-search-results\`);
+
+      if (searchContainer) searchContainer.classList.add('hidden');
+      if (searchInput) searchInput.value = '';
+      if (searchResults) {
+        searchResults.classList.add('hidden');
+        searchResults.innerHTML = '';
+      }
+
+      // Clear any pending search
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+      }
+    }
+
+    function hideSearchResults(type) {
+      const searchResults = document.getElementById(\`\${type}-search-results\`);
+      if (searchResults) {
+        searchResults.classList.add('hidden');
+        searchResults.innerHTML = '';
+      }
+    }
+
+    function searchIdentities(query, type) {
+      console.log('=== Search Identities ===');
+      console.log('Query:', query);
+      console.log('Type:', type);
+
+      const searchResults = document.getElementById(\`\${type}-search-results\`);
+      if (!searchResults) {
+        console.error('Search results element not found');
+        return;
+      }
+
+      // Show loading state
+      searchResults.classList.remove('hidden');
+      searchResults.innerHTML = \`
+        <div class="flex items-center justify-center p-4">
+          <svg class="animate-spin h-5 w-5 text-vscode-fg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span class="ml-2 text-sm text-vscode-fg">Searching...</span>
+        </div>
+      \`;
+
+      // Send search request to extension
+      console.log('Sending searchIdentities message to extension...');
+      vscode.postMessage({
+        command: 'searchIdentities',
+        query: query,
+        type: type,
+        prId: ${pullRequest.id}
+      });
+      console.log('Message sent');
+    }
+
+    function displaySearchResults(results, type) {
+      console.log('=== Display Search Results ===');
+      console.log('Type:', type);
+      console.log('Results:', results);
+      console.log('Results count:', results ? results.length : 0);
+
+      const searchResults = document.getElementById(\`\${type}-search-results\`);
+      if (!searchResults) {
+        console.error('Search results container not found for type:', type);
+        return;
+      }
+
+      if (!results || results.length === 0) {
+        console.log('No results found, showing empty state');
+        searchResults.innerHTML = \`
+          <div class="p-4 text-center text-sm text-vscode-fg opacity-60">
+            No users or groups found
+          </div>
+        \`;
+        return;
+      }
+
+      console.log('Rendering', results.length, 'results');
+
+      let html = '<div class="py-1">';
+
+      results.forEach(identity => {
+        const initials = getInitials(identity.displayName);
+        const avatarColor = getAvatarColor(identity.displayName);
+
+        html += \`
+          <button
+            class="w-full flex items-center gap-3 px-3 py-2 hover:bg-vscode-list-hoverBackground transition-colors text-left"
+            onclick="selectReviewer('\${escapeHtml(JSON.stringify(identity))}', '\${type}')"
+          >
+            \${
+              identity.imageUrl
+                ? \`<img src="\${identity.imageUrl}" class="w-8 h-8 rounded-full" alt="\${identity.displayName}" />\`
+                : \`<div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium" style="background-color: \${avatarColor}">\${initials}</div>\`
+            }
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-vscode-fg truncate">\${escapeHtml(identity.displayName)}</div>
+              <div class="text-xs text-vscode-fg opacity-60 truncate">\${escapeHtml(identity.uniqueName || identity.id)}</div>
+            </div>
+            \${
+              identity.isContainer
+                ? \`<span class="text-xs px-2 py-0.5 bg-vscode-badge-background text-vscode-badge-foreground rounded">Group</span>\`
+                : ''
+            }
+          </button>
+        \`;
+      });
+
+      html += '</div>';
+      searchResults.innerHTML = html;
+    }
+
+    function getInitials(displayName) {
+      if (!displayName) return '??';
+      const parts = displayName.trim().split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return displayName.substring(0, 2).toUpperCase();
+    }
+
+    function getAvatarColor(name) {
+      const colors = [
+        '#0078d4',
+        '#16a34a',
+        '#d97706',
+        '#7c3aed',
+        '#db2777',
+        '#059669',
+        '#2563eb',
+        '#c026d3',
+      ];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    }
+
+    function selectReviewer(identityJson, type) {
+      try {
+        const identity = JSON.parse(identityJson);
+
+        // Send message to extension to add the reviewer
+        vscode.postMessage({
+          command: 'addReviewerToPR',
+          identity: identity,
+          type: type,
+          prId: ${pullRequest.id}
+        });
+
+        // Close the search
+        cancelReviewerSearch(type);
+
+        // Show success message (optional)
+        console.log('Adding reviewer:', identity.displayName, 'as', type);
+      } catch (error) {
+        console.error('Error selecting reviewer:', error);
+      }
+    }
+
+    // Listen for search results from extension
+    window.addEventListener('message', event => {
+      const message = event.data;
+
+      if (message.command === 'searchResultsResponse') {
+        displaySearchResults(message.results, message.type);
+      }
+    });
+
+    // Initialize dropdown when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupReviewerDropdown);
+    } else {
+      setupReviewerDropdown();
+    }
   </script>
 </body>
 </html>`;
