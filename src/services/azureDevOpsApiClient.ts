@@ -322,6 +322,23 @@ export interface PullRequestFileChange {
   deletions?: number;
 }
 
+export interface GitCommit {
+  commitId: string;
+  author: {
+    name: string;
+    email: string;
+    date: string;
+  };
+  committer?: {
+    name: string;
+    email: string;
+    date: string;
+  };
+  comment: string;
+  commentTruncated?: boolean;
+  url?: string;
+}
+
 export interface FileDiff {
   path: string;
   changeType: 'add' | 'edit' | 'delete' | 'rename';
@@ -1317,6 +1334,42 @@ export class AzureDevOpsApiClient {
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error fetching file content: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches all commits for a pull request
+   * @param project - The project name
+   * @param repositoryId - The repository ID
+   * @param pullRequestId - The pull request ID
+   */
+  async getPullRequestCommits(
+    project: string,
+    repositoryId: string,
+    pullRequestId: number,
+  ): Promise<GitCommit[]> {
+    try {
+      const url = `${this.baseUrl}/${project}/_apis/git/repositories/${repositoryId}/pullRequests/${pullRequestId}/commits?api-version=7.1`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to fetch PR commits: ${response.status} ${response.statusText}. ${errorText}`,
+        );
+      }
+
+      const data = (await response.json()) as { value?: GitCommit[] };
+      return data.value || [];
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error fetching PR commits: ${error.message}`);
       }
       throw error;
     }

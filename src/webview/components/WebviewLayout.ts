@@ -9,6 +9,7 @@ import {
   CommentThread,
   AzureDevOpsProfile,
   PullRequestFileChange,
+  GitCommit,
 } from '../../services/azureDevOpsApiClient';
 import { ThreadComponents } from './ThreadComponents';
 
@@ -18,6 +19,7 @@ export class WebviewLayout {
     threads: CommentThread[] = [],
     userProfile?: AzureDevOpsProfile,
     fileChanges?: PullRequestFileChange[],
+    commits?: GitCommit[],
   ): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -41,7 +43,7 @@ ${WebviewStyles.getHtmlHead()}
 
       ${TabContent.renderUpdatesContent()}
 
-      ${TabContent.renderCommitsContent()}
+      ${TabContent.renderCommitsContent(commits || [])}
 
       ${TabContent.renderConflictsContent()}
     </div>
@@ -829,6 +831,23 @@ ${WebviewStyles.getHtmlHead()}
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // Commit Functions
+    function copyCommitHash(commitId) {
+      navigator.clipboard.writeText(commitId).then(() => {
+        // Visual feedback: briefly change the icon
+        const btn = event.target.closest('button');
+        if (btn) {
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = '<svg class="w-4 h-4 text-vscode-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+          }, 1000);
+        }
+      }).catch(err => {
+        console.error('Failed to copy commit hash:', err);
+      });
     }
 
 

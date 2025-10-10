@@ -1,4 +1,4 @@
-import { PullRequestFileChange } from '../../services/azureDevOpsApiClient';
+import { PullRequestFileChange, GitCommit } from '../../services/azureDevOpsApiClient';
 
 interface FileTreeNode {
   name: string;
@@ -240,11 +240,150 @@ export class TabContent {
       </div>`;
   }
 
-  static renderCommitsContent(): string {
+  static renderCommitsContent(commits: GitCommit[]): string {
+    const formatDate = (dateString: string): string => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffHours < 1) {
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        return diffMins < 1 ? 'Just now' : `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+      } else if (diffHours < 24) {
+        return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+      } else if (diffDays === 1) {
+        return `Yesterday at ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false })}`;
+      } else if (diffDays < 7) {
+        return `${diffDays} days ago`;
+      } else {
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+      }
+    };
+
+    const getAuthorInitials = (name: string): string => {
+      const parts = name.split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    };
+
     return `
-      <div id="commitsContent" class="tab-content bg-vscode-bg rounded-lg border border-vscode-border content-card p-8 hidden">
-        <h3 class="text-lg font-medium text-vscode-fg mb-4">Commits</h3>
-        <p class="text-vscode-fg opacity-60">Commits content would go here...</p>
+      <div id="commitsContent" class="tab-content bg-vscode-bg rounded-lg border border-vscode-border content-card hidden h-full flex flex-col">
+        ${
+          commits.length > 0
+            ? `
+          <!-- Header -->
+          <div class="px-6 py-4 border-b border-vscode-border">
+            <h3 class="text-lg font-medium text-vscode-fg">${commits.length} Commit${commits.length !== 1 ? 's' : ''}</h3>
+          </div>
+
+          <!-- Commits List -->
+          <div class="flex-1 overflow-y-auto">
+            <div class="divide-y divide-vscode-border">
+              ${commits
+                .map(
+                  (commit) => `
+                <div class="px-6 py-4 hover:bg-vscode-list-hover-bg transition-colors">
+                  <div class="flex items-start space-x-3">
+                    <!-- Author Avatar -->
+                    <div class="flex-shrink-0 mt-1">
+                      <div class="w-8 h-8 rounded-full bg-vscode-button-bg flex items-center justify-center text-vscode-button-fg text-xs font-semibold">
+                        ${getAuthorInitials(commit.author.name)}
+                      </div>
+                    </div>
+
+                    <!-- Commit Details -->
+                    <div class="flex-1 min-w-0">
+                      <!-- Commit Message -->
+                      <div class="text-sm font-medium text-vscode-fg mb-1">
+                        ${commit.comment.split('\n')[0]}${commit.commentTruncated ? '...' : ''}
+                      </div>
+
+                      <!-- Commit Metadata -->
+                      <div class="flex items-center space-x-3 text-xs text-vscode-fg opacity-60">
+                        <!-- Commit Hash -->
+                        <div class="flex items-center space-x-1">
+                          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 2a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0013.414 6L10 2.586A2 2 0 008.586 2H4zm8 10a1 1 0 10-2 0v2a1 1 0 102 0v-2z" clip-rule="evenodd"/>
+                          </svg>
+                          <code class="font-mono">${commit.commitId.substring(0, 8)}</code>
+                        </div>
+
+                        <!-- Author -->
+                        <div class="flex items-center space-x-1">
+                          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                          </svg>
+                          <span>${commit.author.name}</span>
+                        </div>
+
+                        <!-- Date -->
+                        <div class="flex items-center space-x-1">
+                          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                          </svg>
+                          <span>${formatDate(commit.author.date)}</span>
+                        </div>
+                      </div>
+
+                      ${
+                        commit.comment.split('\n').length > 1
+                          ? `
+                        <!-- Extended Commit Message -->
+                        <div class="mt-2 text-xs text-vscode-fg opacity-70 pl-4 border-l-2 border-vscode-border">
+                          ${commit.comment
+                            .split('\n')
+                            .slice(1)
+                            .filter((line) => line.trim())
+                            .map((line) => `<div class="mb-1">${line}</div>`)
+                            .join('')}
+                        </div>
+                      `
+                          : ''
+                      }
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex-shrink-0 flex items-center space-x-2">
+                      <button
+                        onclick="copyCommitHash('${commit.commitId}')"
+                        class="p-1.5 rounded hover:bg-vscode-button-hover-bg text-vscode-fg opacity-60 hover:opacity-100 transition-opacity"
+                        title="Copy commit hash"
+                      >
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                          <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `,
+                )
+                .join('')}
+            </div>
+          </div>
+        `
+            : `
+          <!-- Empty State -->
+          <div class="flex-1 flex items-center justify-center text-vscode-fg opacity-60">
+            <div class="text-center py-12">
+              <svg class="w-16 h-16 mx-auto mb-4 text-vscode-border" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4 2a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0013.414 6L10 2.586A2 2 0 008.586 2H4zm8 10a1 1 0 10-2 0v2a1 1 0 102 0v-2z" clip-rule="evenodd"/>
+              </svg>
+              <p class="text-sm font-medium mb-1">No commits found</p>
+              <p class="text-xs opacity-70">This pull request doesn't have any commits yet</p>
+            </div>
+          </div>
+        `
+        }
       </div>`;
   }
 

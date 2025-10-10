@@ -6,6 +6,7 @@ import {
   CommentThread,
   AzureDevOpsProfile,
   PullRequestFileChange,
+  GitCommit,
 } from './services/azureDevOpsApiClient';
 import { AuthService } from './services/authService';
 
@@ -105,6 +106,7 @@ export class PrDetailsWebviewProvider {
     // Fetch threads and statuses from Azure DevOps
     let threads: CommentThread[] = [];
     let fileChanges: PullRequestFileChange[] = [];
+    let commits: GitCommit[] = [];
     let userProfile = authService.getUserProfileService().getStoredProfile();
     try {
       if (pullRequest.repository) {
@@ -140,6 +142,20 @@ export class PrDetailsWebviewProvider {
             console.error('Failed to fetch PR file changes:', fileError);
             if (fileError instanceof Error) {
               console.error('Error details:', fileError.message);
+            }
+          }
+
+          // Fetch commits
+          try {
+            commits = await apiClient.getPullRequestCommits(
+              pullRequest.repository.project,
+              pullRequest.repository.repository,
+              pullRequest.id,
+            );
+          } catch (commitError) {
+            console.error('Failed to fetch PR commits:', commitError);
+            if (commitError instanceof Error) {
+              console.error('Error details:', commitError.message);
             }
           }
 
@@ -201,6 +217,7 @@ export class PrDetailsWebviewProvider {
       threads,
       userProfile,
       fileChanges,
+      commits,
     );
 
     // Handle messages from the webview
@@ -486,7 +503,8 @@ export class PrDetailsWebviewProvider {
     threads: CommentThread[],
     userProfile?: AzureDevOpsProfile,
     fileChanges?: PullRequestFileChange[],
+    commits?: GitCommit[],
   ): string {
-    return WebviewLayout.render(pullRequest, threads, userProfile, fileChanges);
+    return WebviewLayout.render(pullRequest, threads, userProfile, fileChanges, commits);
   }
 }
