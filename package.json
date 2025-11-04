@@ -16,6 +16,10 @@
       {
         "command": "azure-devops-pr.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "azure-devops-pr.createPullRequest",
+        "title": "Azure DevOps: Create Pull Request"
       }
     ]
   },
