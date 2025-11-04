@@ -22,6 +22,7 @@ export class WebviewLayout {
     fileChanges?: PullRequestFileChange[],
     commits?: GitCommit[],
     updates?: PullRequestUpdate[],
+    sidebarError?: { hasError: boolean; message?: string },
   ): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -38,7 +39,7 @@ ${WebviewStyles.getHtmlHead()}
     <!-- Content Area - Dynamic Layout Based on Tab -->
     <div class="flex-1 overflow-hidden">
       <!-- Overview Tab Content - Two Columns -->
-      ${OverviewContent.render(pullRequest, threads, userProfile)}
+      ${OverviewContent.render(pullRequest, threads, userProfile, sidebarError)}
 
       <!-- Files Tab Content - Full Width -->
       ${TabContent.renderFilesContent(fileChanges || [])}

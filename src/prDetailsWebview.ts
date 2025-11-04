@@ -113,6 +113,8 @@ export class PrDetailsWebviewProvider {
     let commits: GitCommit[] = [];
     let updates: PullRequestUpdate[] = [];
     let userProfile = authService.getUserProfileService().getStoredProfile();
+    let sidebarError: { hasError: boolean; message?: string } | undefined;
+
     try {
       if (pullRequest.repository) {
         const pat = await authService.getPersonalAccessToken();
@@ -220,13 +222,29 @@ export class PrDetailsWebviewProvider {
               threads,
             );
           }
+        } else {
+          // No PAT token - set sidebar error
+          sidebarError = {
+            hasError: true,
+            message: 'Authentication required. Please sign in to view PR details.',
+          };
         }
+      } else {
+        // No repository info - set sidebar error
+        sidebarError = {
+          hasError: true,
+          message: 'Repository information not available.',
+        };
       }
     } catch (error) {
-      console.error('Failed to fetch PR threads:', error);
-      vscode.window.showWarningMessage(
-        `Failed to load comments for PR #${pullRequest.id}. Using dummy data.`,
-      );
+      console.error('Failed to fetch PR data:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      vscode.window.showWarningMessage(`Failed to load PR #${pullRequest.id}: ${errorMessage}`);
+      // Set sidebar error
+      sidebarError = {
+        hasError: true,
+        message: `Failed to load PR data: ${errorMessage}`,
+      };
     }
 
     panel.webview.html = this.getWebviewContent(
@@ -238,6 +256,7 @@ export class PrDetailsWebviewProvider {
       fileChanges,
       commits,
       updates,
+      sidebarError,
     );
 
     // Handle messages from the webview
@@ -821,6 +840,7 @@ export class PrDetailsWebviewProvider {
       let commits: GitCommit[] = [];
       let updates: PullRequestUpdate[] = [];
       let userProfile = authService.getUserProfileService().getStoredProfile();
+      let sidebarError: { hasError: boolean; message?: string } | undefined;
 
       if (pullRequest.repository) {
         const pat = await authService.getPersonalAccessToken();
@@ -916,7 +936,19 @@ export class PrDetailsWebviewProvider {
               threads,
             );
           }
+        } else {
+          // No PAT token - set sidebar error
+          sidebarError = {
+            hasError: true,
+            message: 'Authentication required. Please sign in to view PR details.',
+          };
         }
+      } else {
+        // No repository info - set sidebar error
+        sidebarError = {
+          hasError: true,
+          message: 'Repository information not available.',
+        };
       }
 
       // Update the webview content
@@ -929,6 +961,7 @@ export class PrDetailsWebviewProvider {
         fileChanges,
         commits,
         updates,
+        sidebarError,
       );
 
       // Notify webview that refresh is complete
@@ -939,8 +972,25 @@ export class PrDetailsWebviewProvider {
       vscode.window.showInformationMessage(`PR #${pullRequest.id} refreshed successfully`);
     } catch (error) {
       console.error('Failed to refresh PR:', error);
-      vscode.window.showErrorMessage(
-        `Failed to refresh PR: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      vscode.window.showErrorMessage(`Failed to refresh PR: ${errorMessage}`);
+
+      // Update webview with error state in sidebar
+      const sidebarError = {
+        hasError: true,
+        message: `Failed to refresh PR data: ${errorMessage}`,
+      };
+
+      panel.webview.html = this.getWebviewContent(
+        panel.webview,
+        extensionUri,
+        pullRequest,
+        [],
+        authService.getUserProfileService().getStoredProfile(),
+        [],
+        [],
+        [],
+        sidebarError,
       );
 
       // Still notify webview to hide the loading overlay
@@ -959,7 +1009,16 @@ export class PrDetailsWebviewProvider {
     fileChanges?: PullRequestFileChange[],
     commits?: GitCommit[],
     updates?: PullRequestUpdate[],
+    sidebarError?: { hasError: boolean; message?: string },
   ): string {
-    return WebviewLayout.render(pullRequest, threads, userProfile, fileChanges, commits, updates);
+    return WebviewLayout.render(
+      pullRequest,
+      threads,
+      userProfile,
+      fileChanges,
+      commits,
+      updates,
+      sidebarError,
+    );
   }
 }

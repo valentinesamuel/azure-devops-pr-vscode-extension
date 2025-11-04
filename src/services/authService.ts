@@ -102,6 +102,7 @@ export class AuthService {
    */
   async isAuthenticated(): Promise<boolean> {
     const pat = await this.getPersonalAccessToken();
+    console.log('🛑🛑🛑🛑🛑=>>', pat);
     return !!pat;
   }
 

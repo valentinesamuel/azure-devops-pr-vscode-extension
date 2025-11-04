@@ -89,6 +89,7 @@ export class OverviewContent {
     pullRequest: PullRequest,
     threads: CommentThread[] = [],
     userProfile?: AzureDevOpsProfile,
+    sidebarError?: { hasError: boolean; message?: string },
   ): string {
     return `
       <div id="overviewContent" class="tab-content flex gap-6 h-full">
@@ -96,7 +97,11 @@ export class OverviewContent {
         ${this.renderLeftColumn(pullRequest, threads, userProfile)}
 
         <!-- Right Column - Sidebar -->
-        ${SidebarComponents.renderSidebar(pullRequest.reviewersDetailed)}
+        ${SidebarComponents.renderSidebar(
+          pullRequest.reviewersDetailed,
+          sidebarError?.hasError || false,
+          sidebarError?.message,
+        )}
       </div>`;
   }
 }
